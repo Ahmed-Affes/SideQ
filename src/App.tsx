@@ -122,6 +122,7 @@ export function App() {
     );
   }
 
+  const isAdmin = user?.email?.toLowerCase().trim() === 'dwarfking332@gmail.com' || Boolean(user?.isAdmin);
   const activeStop = quest && quest.stops.length > 0 ? quest.stops[quest.activeStopIndex] : null;
   const userGuild = guilds.find((g) => g.id === user.guildId) || null;
 
@@ -280,7 +281,6 @@ export function App() {
       {/* Persistent Top Navigation Bar */}
       <TopBar
         user={user}
-        onOpenAdmin={() => setIsAdminOpen(true)}
         onSelectTab={setActiveTab}
         activeTab={activeTab}
         onSignOut={handleSignOut}
@@ -326,7 +326,7 @@ export function App() {
               totalStops={quest?.stops?.length || 0}
               onOpenCheckIn={() => setIsCheckInOpen(true)}
               onOpenChainDrawer={() => setIsChainDrawerOpen(true)}
-              onOpenAdmin={() => setIsAdminOpen(true)}
+              onOpenAdmin={isAdmin ? () => setIsAdminOpen(true) : undefined}
             />
           </div>
         )}
@@ -372,12 +372,12 @@ export function App() {
 
         {/* TAB 5: PROFILE & CHRONICLES */}
         {activeTab === 'profile' && (
-          <ProfileView user={user} onOpenAdmin={() => setIsAdminOpen(true)} />
+          <ProfileView user={user} onOpenAdmin={isAdmin ? () => setIsAdminOpen(true) : undefined} />
         )}
       </main>
 
       {/* Persistent Bottom Mobile Tab Navigation */}
-      <BottomNav activeTab={activeTab} onSelectTab={setActiveTab} />
+      <BottomNav activeTab={activeTab} onSelectTab={setActiveTab} unreadChatCount={0} />
 
       {/* MODALS */}
       {/* 1. Location Check-In Modal (GPS & QR) */}
@@ -402,8 +402,8 @@ export function App() {
         />
       )}
 
-      {/* 4. Admin Chamber Studio */}
-      {isAdminOpen && (
+      {/* 4. Admin Chamber Studio (Admin Only) */}
+      {isAdminOpen && isAdmin && (
         <AdminChamberModal
           quest={quest}
           onClose={() => setIsAdminOpen(false)}

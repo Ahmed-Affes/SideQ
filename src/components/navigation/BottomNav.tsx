@@ -10,7 +10,7 @@ interface BottomNavProps {
 export const BottomNav: React.FC<BottomNavProps> = ({
   activeTab,
   onSelectTab,
-  unreadChatCount = 2
+  unreadChatCount = 0
 }) => {
   const tabs = [
     { id: 'quest' as const, label: 'Quest', icon: Compass },

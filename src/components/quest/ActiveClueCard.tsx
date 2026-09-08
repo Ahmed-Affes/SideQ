@@ -1,7 +1,7 @@
 import React from 'react';
 import type { QuestStop } from '../../types';
 import { WaxSeal } from '../common/WaxSeal';
-import { QrCode, MapPin, ChevronUp, Sparkles, Feather } from 'lucide-react';
+import { QrCode, MapPin, ChevronUp, Sparkles, Feather, Clock } from 'lucide-react';
 
 interface ActiveClueCardProps {
   questTitle?: string;
@@ -83,7 +83,7 @@ export const ActiveClueCard: React.FC<ActiveClueCardProps> = ({
           “No weekly riddle chain has been inscribed upon the university arches yet. The Society Grandmaster is preparing the next chapter.”
         </p>
 
-        {onOpenAdmin && (
+        {onOpenAdmin ? (
           <button
             type="button"
             onClick={onOpenAdmin}
@@ -109,6 +109,28 @@ export const ActiveClueCard: React.FC<ActiveClueCardProps> = ({
             <Feather size={15} />
             <span>POST FIRST STORY QUEST (ADMIN STUDIO)</span>
           </button>
+        ) : (
+          <div
+            style={{
+              marginTop: 4,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              padding: '10px 14px',
+              borderRadius: 'var(--radius-sm)',
+              backgroundColor: 'rgba(255, 255, 255, 0.04)',
+              border: '1px solid rgba(229, 192, 123, 0.2)',
+              color: 'var(--gold-secondary)',
+              fontSize: '11px',
+              fontFamily: 'var(--font-display)',
+              fontWeight: 700,
+              letterSpacing: '0.04em'
+            }}
+          >
+            <Clock size={13} />
+            <span>Awaiting Next Chronicle Drop</span>
+          </div>
         )}
       </div>
     );

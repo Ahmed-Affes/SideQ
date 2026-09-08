@@ -116,6 +116,8 @@ export interface UserProfile {
   id: string;
   name: string;
   handle: string;
+  email?: string;
+  isAdmin?: boolean;
   title: string;
   level: number;
   currentXp: number;

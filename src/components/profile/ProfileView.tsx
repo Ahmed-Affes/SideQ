@@ -158,8 +158,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user, onOpenAdmin }) =
         </div>
       </div>
 
-      {/* Questmaster Chamber Studio (Admin quick access) */}
-      {onOpenAdmin && (
+      {/* Questmaster Chamber Studio (Admin ONLY - strictly hidden from regular scholars) */}
+      {user.isAdmin && onOpenAdmin && (
         <div
           className="gilded-card"
           style={{

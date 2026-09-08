@@ -1,6 +1,12 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type { UserProfile } from '../types';
 
+export const ADMIN_EMAIL = 'dwarfking332@gmail.com';
+
+export const isUserAdmin = (email?: string): boolean => {
+  return Boolean(email && email.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase());
+};
+
 export interface AuthState {
   user: UserProfile | null;
   session: any | null;
@@ -40,12 +46,15 @@ export const authService = {
     }
 
     if (data.user) {
+      const isAdmin = isUserAdmin(cleanEmail);
       // Create initial profile in public.profiles table
       const newProfile: UserProfile = {
         id: data.user.id,
         name: cleanName,
         handle: cleanHandle,
-        title: 'Novice Initiate',
+        email: cleanEmail,
+        isAdmin,
+        title: isAdmin ? 'Campus Questmaster' : 'Novice Initiate',
         level: 1,
         currentXp: 0,
         nextLevelXp: 1000,
@@ -111,6 +120,9 @@ export const authService = {
     }
 
     if (data.user) {
+      const userEmail = data.user.email || cleanEmail;
+      const isAdmin = isUserAdmin(userEmail);
+
       // Fetch user profile from Supabase
       const { data: profileData, error: profileErr } = await supabase
         .from('profiles')
@@ -124,7 +136,9 @@ export const authService = {
           id: profileData.id,
           name: profileData.name,
           handle: profileData.handle,
-          title: profileData.title || 'Novice Initiate',
+          email: userEmail,
+          isAdmin,
+          title: isAdmin ? 'Campus Questmaster' : (profileData.title || 'Novice Initiate'),
           level: profileData.level || 1,
           currentXp: profileData.current_xp || 0,
           nextLevelXp: profileData.next_level_xp || 1000,
@@ -143,7 +157,9 @@ export const authService = {
           id: data.user.id,
           name: data.user.user_metadata?.name || cleanEmail.split('@')[0],
           handle: data.user.user_metadata?.handle || `@${cleanEmail.split('@')[0]}`,
-          title: 'Novice Initiate',
+          email: userEmail,
+          isAdmin,
+          title: isAdmin ? 'Campus Questmaster' : 'Novice Initiate',
           level: 1,
           currentXp: 0,
           nextLevelXp: 1000,
@@ -210,11 +226,15 @@ export const authService = {
         .single();
 
       if (profileData) {
+        const userEmail = session.user.email || '';
+        const isAdmin = isUserAdmin(userEmail);
         const profile: UserProfile = {
           id: profileData.id,
           name: profileData.name,
           handle: profileData.handle,
-          title: profileData.title || 'Novice Initiate',
+          email: userEmail,
+          isAdmin,
+          title: isAdmin ? 'Campus Questmaster' : (profileData.title || 'Novice Initiate'),
           level: profileData.level || 1,
           currentXp: profileData.current_xp || 0,
           nextLevelXp: profileData.next_level_xp || 1000,
