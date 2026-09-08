@@ -49,23 +49,14 @@ export const authService = {
         level: 1,
         currentXp: 0,
         nextLevelXp: 1000,
-        guildId: 'guild-chronos',
-        guildName: 'Chronos Keepers',
-        guildTag: 'CHRONO',
-        guildRole: 'Scout',
+        guildId: '',
+        guildName: '',
+        guildTag: '',
+        guildRole: '',
         completedQuestsCount: 0,
         locationsDiscovered: 0,
         currentStreakDays: 1,
-        badges: [
-          {
-            id: 'badge-initiate',
-            name: 'The Maiden Seal',
-            description: 'Enrolled into the Sidequest Society.',
-            icon: 'Compass',
-            rarity: 'Novice',
-            unlockedDate: 'Today'
-          }
-        ]
+        badges: []
       };
 
       try {
@@ -77,10 +68,10 @@ export const authService = {
           level: newProfile.level,
           current_xp: newProfile.currentXp,
           next_level_xp: newProfile.nextLevelXp,
-          guild_id: newProfile.guildId,
-          guild_name: newProfile.guildName,
-          guild_tag: newProfile.guildTag,
-          guild_role: newProfile.guildRole,
+          guild_id: null,
+          guild_name: null,
+          guild_tag: null,
+          guild_role: null,
           completed_quests_count: newProfile.completedQuestsCount,
           locations_discovered: newProfile.locationsDiscovered,
           current_streak_days: newProfile.currentStreakDays,
@@ -137,10 +128,10 @@ export const authService = {
           level: profileData.level || 1,
           currentXp: profileData.current_xp || 0,
           nextLevelXp: profileData.next_level_xp || 1000,
-          guildId: profileData.guild_id || 'guild-chronos',
-          guildName: profileData.guild_name || 'Chronos Keepers',
-          guildTag: profileData.guild_tag || 'CHRONO',
-          guildRole: profileData.guild_role || 'Scout',
+          guildId: profileData.guild_id || '',
+          guildName: profileData.guild_name || '',
+          guildTag: profileData.guild_tag || '',
+          guildRole: profileData.guild_role || '',
           completedQuestsCount: profileData.completed_quests_count || 0,
           locationsDiscovered: profileData.locations_discovered || 0,
           currentStreakDays: profileData.current_streak_days || 1,
@@ -156,23 +147,14 @@ export const authService = {
           level: 1,
           currentXp: 0,
           nextLevelXp: 1000,
-          guildId: 'guild-chronos',
-          guildName: 'Chronos Keepers',
-          guildTag: 'CHRONO',
-          guildRole: 'Scout',
+          guildId: '',
+          guildName: '',
+          guildTag: '',
+          guildRole: '',
           completedQuestsCount: 0,
           locationsDiscovered: 0,
           currentStreakDays: 1,
-          badges: [
-            {
-              id: 'badge-initiate',
-              name: 'The Maiden Seal',
-              description: 'Enrolled into the Sidequest Society.',
-              icon: 'Compass',
-              rarity: 'Novice',
-              unlockedDate: 'Today'
-            }
-          ]
+          badges: []
         };
 
         try {
@@ -184,10 +166,10 @@ export const authService = {
             level: profile.level,
             current_xp: profile.currentXp,
             next_level_xp: profile.nextLevelXp,
-            guild_id: profile.guildId,
-            guild_name: profile.guildName,
-            guild_tag: profile.guildTag,
-            guild_role: profile.guildRole,
+            guild_id: null,
+            guild_name: null,
+            guild_tag: null,
+            guild_role: null,
             completed_quests_count: 0,
             locations_discovered: 0,
             current_streak_days: 1,
@@ -208,7 +190,6 @@ export const authService = {
   // Get Current Session and Profile
   async getCurrentUser(): Promise<UserProfile | null> {
     if (!isSupabaseConfigured()) {
-      // Clear out any old fake/mock cache from prior testing
       localStorage.removeItem('sideq_user_profile');
       localStorage.removeItem('sideq_session');
       return null;
@@ -237,10 +218,10 @@ export const authService = {
           level: profileData.level || 1,
           currentXp: profileData.current_xp || 0,
           nextLevelXp: profileData.next_level_xp || 1000,
-          guildId: profileData.guild_id || 'guild-chronos',
-          guildName: profileData.guild_name || 'Chronos Keepers',
-          guildTag: profileData.guild_tag || 'CHRONO',
-          guildRole: profileData.guild_role || 'Scout',
+          guildId: profileData.guild_id || '',
+          guildName: profileData.guild_name || '',
+          guildTag: profileData.guild_tag || '',
+          guildRole: profileData.guild_role || '',
           completedQuestsCount: profileData.completed_quests_count || 0,
           locationsDiscovered: profileData.locations_discovered || 0,
           currentStreakDays: profileData.current_streak_days || 1,

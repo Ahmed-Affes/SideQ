@@ -120,10 +120,10 @@ export interface UserProfile {
   level: number;
   currentXp: number;
   nextLevelXp: number;
-  guildId: string;
-  guildName: string;
-  guildTag: string;
-  guildRole: GuildRole;
+  guildId?: string;
+  guildName?: string;
+  guildTag?: string;
+  guildRole?: GuildRole | string;
   completedQuestsCount: number;
   locationsDiscovered: number;
   currentStreakDays: number;

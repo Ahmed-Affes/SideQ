@@ -159,118 +159,6 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.user_quest_progress;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.guilds;
 
 -- ==============================================================================
--- SEED INITIAL DATA FOR SIDEQUEST SOCIETY (WEEK 7)
--- ==============================================================================
-
-INSERT INTO public.quests (id, title, episode, week_number, theme, narrative_intro, resolution_narrative, total_xp, published_at, expires_at)
-VALUES (
-  'quest-week-07',
-  'The Whispering Obelisk',
-  'Week 7 • Chapter III',
-  7,
-  'Ancient Campus Mystery',
-  'Long before modern lecture halls cast shadows across the Great Quadrangle, founders of the Whispering Society inscribed four cryptic sigils upon campus bedrock. When the equinox winds rise, the keystones hum in harmony. Only scholars who unravel the four riddles can awaken the dormant obelisk before the Sunday bell tolls.',
-  'As the final keystone aligns beneath the Whispering Arches, the stone pedestal sinks three inches into the earth, revealing the parchment archives of 1888. You have proven yourself a Master Chronicler of the Society.',
-  950,
-  'Monday, 09:00 AM',
-  'Sunday, 11:59 PM'
-) ON CONFLICT (id) DO NOTHING;
-
-INSERT INTO public.quest_stops (id, quest_id, stop_number, title, location_name, metaphoric_riddle, story_lore_unlock, historical_note, campus_x, campus_y, qr_payload, xp_reward)
-VALUES 
-(
-  'stop-01',
-  'quest-week-07',
-  1,
-  'The Vault of Still Thought',
-  'Cathedral Library Archives (East Wing)',
-  'Where silence is law and ten thousand minds wander unbound beneath leaded vaults of stained glass, seek the stone corbel etched with an unblinking owl above the microfiche alcove.',
-  'Behind the carved oaken plinth of 1904, a brass cylinder yields the first transcription. The society noted: "Light reveals what shadows protect."',
-  'Constructed in 1895, the East Wing houses over 12,000 rare collegiate folios.',
-  28, 66,
-  'SIDEQ:LIB:OWL1904',
-  150
-),
-(
-  'stop-02',
-  'quest-week-07',
-  2,
-  'The Bronze Heartbeat',
-  'Founders Clock Tower & Bell Gables',
-  'Where a heavy bronze pendulum measures the silent mortality of scholars, look where the gargoyle’s noon shadow falls upon weathered granite steps.',
-  'A brass plate set into the foundation clicks downward under gentle pressure. A secret cylinder turns, revealing the next verse pointing toward the glass palace.',
-  'The four clock faces were cast in England in 1891 and chimed for the first graduating class.',
-  53, 34,
-  'SIDEQ:CLOCK:BELL1891',
-  200
-),
-(
-  'stop-03',
-  'quest-week-07',
-  3,
-  'The Glass Solarium',
-  'Victorian Botanical Conservatory',
-  'Where curved iron ribs cage perpetual summer, and ancient night-blooming cereus drinks filtered starlight amidst damp emerald shadows.',
-  'Beneath the humid moss of the koi basin, the third brass sigil surfaces with the compass bearing of the sunken arches.',
-  'Donated in 1912, it shelters over 800 tropical specimens collected on expedition.',
-  76, 52,
-  'SIDEQ:GREENHOUSE:CEREUS1912',
-  250
-),
-(
-  'stop-04',
-  'quest-week-07',
-  4,
-  'The Threshold of Echoes',
-  'The Whispering Arches (Sunken Court)',
-  'Where curved red-brick walls carry a whispered confession across fifty paces, as crisp as if spoken directly into the listener’s ear.',
-  'The center stone rotates, completing the circle of the Whispering Society and releasing the Grand Chapter reward.',
-  'Built as an acoustic marvel by early physics faculty in 1924.',
-  47, 82,
-  'SIDEQ:ARCH:ACOUSTIC1924',
-  350
-) ON CONFLICT (id) DO NOTHING;
-
-INSERT INTO public.guilds (id, name, tag, motto, description, crest_id, banner_gradient, level, current_xp, next_level_xp, member_count, max_members, campus_rank, weekly_xp, all_time_xp, recruitment_vibe, recruitment_tags)
-VALUES 
-(
-  'guild-chronos',
-  'Chronos Keepers',
-  'CHRONO',
-  'By the Second, By the Solstice',
-  'Relentless quest solvers, clockwork navigators, and riddle speedrunners. We hold 4 weekly speed records.',
-  'gear',
-  'linear-gradient(135deg, #1e293b 0%, #312e81 50%, #0f172a 100%)',
-  4, 4850, 6000, 22, 25, 3, 1840, 28450,
-  'Speedrunners & Cryptographers',
-  '["Speedrunners", "Midnight Raids", "Active Voice"]'::jsonb
-),
-(
-  'guild-owls',
-  'Order of the Arcane Owls',
-  'OWLS',
-  'In Shadows, Truth Glides Unseen',
-  'The oldest society on campus. Masters of ancient Latin inscriptions, archival digging, and rare manuscripts.',
-  'owl',
-  'linear-gradient(135deg, #091e3a 0%, #1e1b4b 60%, #030712 100%)',
-  6, 8120, 10000, 28, 30, 1, 2940, 42300,
-  'Lore Masters & Latin Scholars',
-  '["Deep Lore", "Archive Geeks", "Relaxed Pace"]'::jsonb
-),
-(
-  'guild-sunken',
-  'Sunken Garden Society',
-  'MOSS',
-  'Beneath the Ivy, Rooted Deep',
-  'Explorers of hidden courtyards, subterranean steam tunnels, and twilight quad walks.',
-  'willow',
-  'linear-gradient(135deg, #062817 0%, #064e3b 50%, #022c22 100%)',
-  5, 6200, 7500, 24, 25, 2, 2410, 35100,
-  'Nature Walks & Night Explorers',
-  '["Chill Vibe", "Photography", "Night Explorers"]'::jsonb
-) ON CONFLICT (id) DO NOTHING;
-
--- ==============================================================================
 -- AUTOMATIC PROFILE CREATION TRIGGER ON SUPABASE AUTH SIGNUP
 -- ==============================================================================
 CREATE OR REPLACE FUNCTION public.handle_new_user()
@@ -301,14 +189,14 @@ BEGIN
     1,
     0,
     1000,
-    'guild-chronos',
-    'Chronos Keepers',
-    'CHRONO',
-    'Scout',
+    NULL,
+    NULL,
+    NULL,
+    NULL,
     0,
     0,
     1,
-    '[{"id":"badge-initiate","name":"The Maiden Seal","description":"Enrolled into the Sidequest Society.","icon":"Compass","rarity":"Novice","unlockedDate":"Today"}]'::jsonb
+    '[]'::jsonb
   )
   ON CONFLICT (id) DO NOTHING;
   RETURN NEW;
@@ -319,3 +207,4 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+

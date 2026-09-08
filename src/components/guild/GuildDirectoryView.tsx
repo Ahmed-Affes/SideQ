@@ -165,7 +165,59 @@ export const GuildDirectoryView: React.FC<GuildDirectoryViewProps> = ({
 
       {/* Guild Cards List */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        {filteredGuilds.map((g) => {
+        {filteredGuilds.length === 0 ? (
+          guilds.length === 0 ? (
+            <div
+              style={{
+                padding: '36px 20px',
+                textAlign: 'center',
+                backgroundColor: 'rgba(15, 22, 38, 0.5)',
+                border: '1px dashed var(--border-gilded)',
+                borderRadius: 'var(--radius-md)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 12
+              }}
+            >
+              <Shield size={36} color="var(--gold-primary)" />
+              <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-heading)', fontFamily: 'var(--font-display)' }}>
+                The Guild Archives are Empty
+              </div>
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0, maxWidth: 280, lineHeight: 1.4 }}>
+                No student societies have registered on campus yet. Be the first visionary to establish an order and recruit fellows.
+              </p>
+              <button
+                type="button"
+                onClick={onOpenCreateGuild}
+                style={{
+                  marginTop: 6,
+                  padding: '8px 18px',
+                  borderRadius: 'var(--radius-sm)',
+                  backgroundColor: 'var(--gold-primary)',
+                  color: '#070A10',
+                  fontFamily: 'var(--font-display)',
+                  fontWeight: 800,
+                  fontSize: '12px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  boxShadow: '0 2px 10px rgba(229, 192, 123, 0.4)'
+                }}
+              >
+                <Plus size={15} />
+                <span>Found the First Society</span>
+              </button>
+            </div>
+          ) : (
+            <div style={{ padding: '30px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px' }}>
+              No societies found matching “{searchQuery}”.
+            </div>
+          )
+        ) : (
+          filteredGuilds.map((g) => {
           const isMyGuild = g.id === currentGuildId;
           const isFull = g.memberCount >= g.maxMembers;
           const hasApplied = appliedGuildId === g.id;
@@ -299,8 +351,9 @@ export const GuildDirectoryView: React.FC<GuildDirectoryViewProps> = ({
               )}
             </div>
           );
-        })}
-      </div>
+        })
+      )}
+    </div>
     </div>
   );
 };

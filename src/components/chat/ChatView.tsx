@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { ChatMessage, UserProfile } from '../../types';
-import { Send, Flame, Lock, Sparkles } from 'lucide-react';
+import { Send, Flame, Lock } from 'lucide-react';
 
 interface ChatViewProps {
   user: UserProfile;
@@ -18,10 +18,11 @@ export const ChatView: React.FC<ChatViewProps> = ({ user, initialMessages, onSen
   }, [initialMessages]);
 
   const currentMessages = messages.filter((m) => m.channelId === activeChannel);
+  const isGuildChannelLocked = activeChannel === 'guild-private' && !user.guildId;
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputText.trim()) return;
+    if (!inputText.trim() || isGuildChannelLocked) return;
 
     const newMsg: ChatMessage = {
       id: `msg-${Date.now()}`,
@@ -29,7 +30,7 @@ export const ChatView: React.FC<ChatViewProps> = ({ user, initialMessages, onSen
       senderId: user.id,
       senderName: user.name,
       senderHandle: user.handle,
-      senderRole: activeChannel === 'guild-private' ? user.guildRole : undefined,
+      senderRole: activeChannel === 'guild-private' ? (user.guildRole as any) : undefined,
       senderTitle: user.title,
       guildTag: user.guildTag,
       text: inputText.trim(),
@@ -106,29 +107,8 @@ export const ChatView: React.FC<ChatViewProps> = ({ user, initialMessages, onSen
           }}
         >
           <Lock size={13} color="#818CF8" />
-          <span>Chronos War Room</span>
+          <span>{user.guildName ? `${user.guildName} War Room` : 'Society Channel'}</span>
         </button>
-      </div>
-
-      {/* Notice Banner */}
-      <div
-        style={{
-          padding: '6px 16px',
-          backgroundColor: 'rgba(0, 0, 0, 0.3)',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
-          fontSize: '10px',
-          color: 'var(--text-muted)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6
-        }}
-      >
-        <Sparkles size={12} color="var(--gold-primary)" />
-        <span>
-          {activeChannel === 'campus-general'
-            ? 'Campus public channel. Respect all scholars. AI light-touch moderation is staged.'
-            : 'Private encrypted channel for Chronos Keepers guild members.'}
-        </span>
       </div>
 
       {/* Messages Feed */}
@@ -142,70 +122,134 @@ export const ChatView: React.FC<ChatViewProps> = ({ user, initialMessages, onSen
           gap: 14
         }}
       >
-        {currentMessages.map((msg) => {
-          const isMe = msg.senderId === user.id;
+        {isGuildChannelLocked ? (
+          <div
+            style={{
+              margin: 'auto',
+              padding: '30px 20px',
+              textAlign: 'center',
+              backgroundColor: 'rgba(15, 22, 38, 0.5)',
+              border: '1px dashed rgba(129, 140, 248, 0.3)',
+              borderRadius: 'var(--radius-md)',
+              maxWidth: 320,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 10
+            }}
+          >
+            <Lock size={28} color="#818CF8" />
+            <div style={{ fontSize: '14px', fontWeight: 700, color: '#C7D2FE', fontFamily: 'var(--font-display)' }}>
+              Encrypted Frequency
+            </div>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0, lineHeight: 1.4 }}>
+              You are currently an unaffiliated scholar. Charter or pledge allegiance to a campus society to access private war room dispatches.
+            </p>
+          </div>
+        ) : currentMessages.length === 0 ? (
+          <div
+            style={{
+              margin: 'auto',
+              padding: '30px 20px',
+              textAlign: 'center',
+              backgroundColor: 'rgba(15, 22, 38, 0.5)',
+              border: '1px dashed var(--border-gilded)',
+              borderRadius: 'var(--radius-md)',
+              maxWidth: 320,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 10
+            }}
+          >
+            {activeChannel === 'campus-general' ? (
+              <>
+                <Flame size={28} color="var(--gold-primary)" />
+                <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--gold-primary)', fontFamily: 'var(--font-display)' }}>
+                  The Campfire Sparks in Silence
+                </div>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0, lineHeight: 1.4 }}>
+                  No dispatches have been broadcast to the university square yet. Send the first message to awaken the campus.
+                </p>
+              </>
+            ) : (
+              <>
+                <Lock size={28} color="#818CF8" />
+                <div style={{ fontSize: '14px', fontWeight: 700, color: '#C7D2FE', fontFamily: 'var(--font-display)' }}>
+                  Squad Frequency Quiet
+                </div>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0, lineHeight: 1.4 }}>
+                  No messages exchanged in your society yet. Whisper the first strategy to your squad members.
+                </p>
+              </>
+            )}
+          </div>
+        ) : (
+          currentMessages.map((msg) => {
+            const isMe = msg.senderId === user.id;
 
-          return (
-            <div
-              key={msg.id}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: isMe ? 'flex-end' : 'flex-start',
-                gap: 3
-              }}
-            >
-              {/* Sender Name & Guild Tag */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '11px' }}>
-                <span style={{ fontWeight: 700, color: isMe ? 'var(--gold-primary)' : 'var(--text-heading)' }}>
-                  {msg.senderName}
-                </span>
-
-                {msg.guildTag && (
-                  <span
-                    style={{
-                      fontSize: '9px',
-                      color: '#818CF8',
-                      backgroundColor: 'rgba(99, 102, 241, 0.15)',
-                      padding: '1px 4px',
-                      borderRadius: 3,
-                      fontWeight: 700
-                    }}
-                  >
-                    [{msg.guildTag}]
-                  </span>
-                )}
-
-                <span style={{ fontSize: '9px', color: 'var(--text-dim)' }}>
-                  {msg.timestamp}
-                </span>
-              </div>
-
-              {/* Message Bubble */}
+            return (
               <div
+                key={msg.id}
                 style={{
-                  maxWidth: '82%',
-                  padding: '10px 14px',
-                  borderRadius: isMe ? '16px 4px 16px 16px' : '4px 16px 16px 16px',
-                  backgroundColor: isMe
-                    ? 'rgba(153, 27, 27, 0.4)'
-                    : activeChannel === 'guild-private'
-                    ? 'rgba(49, 46, 129, 0.35)'
-                    : 'rgba(255, 255, 255, 0.06)',
-                  border: isMe
-                    ? '1px solid rgba(229, 192, 123, 0.4)'
-                    : '1px solid rgba(255, 255, 255, 0.08)',
-                  color: 'var(--text-parchment)',
-                  fontSize: '13px',
-                  lineHeight: 1.4,
-                  wordBreak: 'break-word'
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: isMe ? 'flex-end' : 'flex-start',
+                  gap: 3
                 }}
               >
-                {msg.text}
+                {/* Sender Name & Guild Tag */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '11px' }}>
+                  <span style={{ fontWeight: 700, color: isMe ? 'var(--gold-primary)' : 'var(--text-heading)' }}>
+                    {msg.senderName}
+                  </span>
+
+                  {msg.guildTag && msg.guildTag !== 'NONE' && (
+                    <span
+                      style={{
+                        fontSize: '9px',
+                        color: '#818CF8',
+                        backgroundColor: 'rgba(99, 102, 241, 0.15)',
+                        padding: '1px 4px',
+                        borderRadius: 3,
+                        fontWeight: 700
+                      }}
+                    >
+                      [{msg.guildTag}]
+                    </span>
+                  )}
+
+                  <span style={{ fontSize: '9px', color: 'var(--text-dim)' }}>
+                    {msg.timestamp}
+                  </span>
+                </div>
+
+                {/* Message Bubble */}
+                <div
+                  style={{
+                    maxWidth: '82%',
+                    padding: '10px 14px',
+                    borderRadius: isMe ? '16px 4px 16px 16px' : '4px 16px 16px 16px',
+                    backgroundColor: isMe
+                      ? 'rgba(153, 27, 27, 0.4)'
+                      : activeChannel === 'guild-private'
+                      ? 'rgba(49, 46, 129, 0.35)'
+                      : 'rgba(255, 255, 255, 0.06)',
+                    border: isMe
+                      ? '1px solid rgba(229, 192, 123, 0.4)'
+                      : '1px solid rgba(255, 255, 255, 0.08)',
+                    color: 'var(--text-parchment)',
+                    fontSize: '13px',
+                    lineHeight: 1.4,
+                    wordBreak: 'break-word'
+                  }}
+                >
+                  {msg.text}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
 
       {/* Chat Input Dock */}
@@ -224,34 +268,43 @@ export const ChatView: React.FC<ChatViewProps> = ({ user, initialMessages, onSen
           type="text"
           value={inputText}
           onChange={(e) => setInputText(e.target.value)}
-          placeholder={activeChannel === 'campus-general' ? 'Post to campus campfire…' : 'Whisper to war room…'}
+          disabled={isGuildChannelLocked}
+          placeholder={
+            isGuildChannelLocked
+              ? 'Join a society to transmit here…'
+              : activeChannel === 'campus-general'
+              ? 'Post to campus campfire…'
+              : 'Whisper to war room…'
+          }
           style={{
             flex: 1,
             height: 42,
             padding: '0 14px',
-            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+            backgroundColor: isGuildChannelLocked ? 'rgba(255, 255, 255, 0.02)' : 'rgba(255, 255, 255, 0.05)',
             border: '1px solid var(--border-gilded)',
             borderRadius: 22,
             color: '#fff',
             fontSize: '13px',
             outline: 'none',
-            fontFamily: 'var(--font-body)'
+            fontFamily: 'var(--font-body)',
+            opacity: isGuildChannelLocked ? 0.5 : 1
           }}
         />
 
         <button
           type="submit"
           aria-label="Send message"
+          disabled={isGuildChannelLocked || !inputText.trim()}
           style={{
             width: 42,
             height: 42,
             borderRadius: '50%',
-            backgroundColor: 'var(--gold-primary)',
+            backgroundColor: isGuildChannelLocked || !inputText.trim() ? 'rgba(229, 192, 123, 0.2)' : 'var(--gold-primary)',
             color: '#070a10',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            cursor: 'pointer',
+            cursor: isGuildChannelLocked || !inputText.trim() ? 'default' : 'pointer',
             border: 'none',
             flexShrink: 0
           }}

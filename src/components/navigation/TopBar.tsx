@@ -1,10 +1,10 @@
 import React from 'react';
 import type { UserProfile } from '../../types';
-import { Shield, Sparkles, KeyRound, LogOut } from 'lucide-react';
+import { Shield, Sparkles, LogOut } from 'lucide-react';
 
 interface TopBarProps {
   user: UserProfile;
-  onOpenAdmin: () => void;
+  onOpenAdmin?: () => void;
   onSelectTab: (tab: 'quest' | 'guild' | 'chat' | 'leaderboard' | 'profile') => void;
   activeTab: string;
   onSignOut?: () => void;
@@ -12,11 +12,9 @@ interface TopBarProps {
 
 export const TopBar: React.FC<TopBarProps> = ({
   user,
-  onOpenAdmin,
   onSelectTab,
   onSignOut
 }) => {
-  const xpPercentage = Math.min(100, Math.round((user.currentXp / user.nextLevelXp) * 100));
 
   return (
     <header
@@ -104,98 +102,62 @@ export const TopBar: React.FC<TopBarProps> = ({
         </div>
       </div>
 
-      {/* Right Action Hub: Guild Crest, XP Bar & Admin Key */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        {/* Guild Tag Badge */}
-        <button
-          type="button"
-          onClick={() => onSelectTab('guild')}
-          aria-label={`Guild ${user.guildName}, tap to view guild`}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 5,
-            backgroundColor: 'rgba(49, 46, 129, 0.3)',
-            border: '1px solid rgba(165, 180, 252, 0.3)',
-            padding: '4px 8px',
-            borderRadius: 'var(--radius-full)',
-            color: '#C7D2FE',
-            fontSize: '10px',
-            fontWeight: 700,
-            fontFamily: 'var(--font-display)',
-            cursor: 'pointer'
-          }}
-        >
-          <Shield size={12} color="#818CF8" />
-          <span>[{user.guildTag}]</span>
-        </button>
-
-        {/* Level & XP Mini Bar */}
-        <div
-          onClick={() => onSelectTab('profile')}
-          title="View profile & badges"
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'flex-end',
-            cursor: 'pointer'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <Sparkles size={11} color="var(--gold-primary)" />
-            <span
-              style={{
-                fontSize: '11px',
-                fontWeight: 800,
-                color: 'var(--gold-primary)',
-                fontVariantNumeric: 'tabular-nums'
-              }}
-            >
-              Lv.{user.level}
-            </span>
-          </div>
-          <div
+      {/* Right Action Hub: Level Chip, Society Tag (if enrolled), & Sign Out */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        {/* Society Tag Badge (Only shown if enrolled in a guild) */}
+        {user.guildTag && (
+          <button
+            type="button"
+            onClick={() => onSelectTab('guild')}
+            aria-label={`Guild ${user.guildName}, tap to view guild`}
             style={{
-              width: 54,
-              height: 4,
-              backgroundColor: 'rgba(255,255,255,0.1)',
-              borderRadius: 2,
-              marginTop: 2,
-              overflow: 'hidden'
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              backgroundColor: 'rgba(49, 46, 129, 0.3)',
+              border: '1px solid rgba(165, 180, 252, 0.3)',
+              padding: '4px 8px',
+              borderRadius: 'var(--radius-full)',
+              color: '#C7D2FE',
+              fontSize: '10px',
+              fontWeight: 700,
+              fontFamily: 'var(--font-display)',
+              cursor: 'pointer'
             }}
           >
-            <div
-              style={{
-                width: `${xpPercentage}%`,
-                height: '100%',
-                background: 'linear-gradient(90deg, #c5a059, #f3e5ab)',
-                borderRadius: 2
-              }}
-            />
-          </div>
-        </div>
+            <Shield size={11} color="#818CF8" />
+            <span>[{user.guildTag}]</span>
+          </button>
+        )}
 
-        {/* Admin Chamber Icon */}
+        {/* Level & XP Mini Bar */}
         <button
           type="button"
-          onClick={onOpenAdmin}
-          aria-label="Open Admin Chamber"
-          title="Admin Quest Master Studio"
+          onClick={() => onSelectTab('profile')}
+          aria-label="View scholar profile"
           style={{
-            width: 32,
-            height: 32,
-            borderRadius: '50%',
-            backgroundColor: 'rgba(255, 255, 255, 0.06)',
-            border: '1px solid var(--border-gilded)',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--gold-secondary)',
-            cursor: 'pointer',
-            transition: 'background 0.2s ease, transform 0.2s ease'
+            gap: 6,
+            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+            border: '1px solid rgba(229, 192, 123, 0.25)',
+            padding: '4px 10px',
+            borderRadius: 14,
+            cursor: 'pointer'
           }}
         >
-          <KeyRound size={15} />
+          <Sparkles size={11} color="var(--gold-primary)" />
+          <span
+            style={{
+              fontSize: '11px',
+              fontWeight: 800,
+              color: 'var(--gold-primary)',
+              fontFamily: 'var(--font-display)',
+              fontVariantNumeric: 'tabular-nums'
+            }}
+          >
+            Lv.{user.level}
+          </span>
         </button>
 
         {/* Sign Out Button */}
@@ -204,7 +166,7 @@ export const TopBar: React.FC<TopBarProps> = ({
             type="button"
             onClick={onSignOut}
             aria-label="Sign out of scholar account"
-            title="Depart Campus / Sign Out"
+            title="Sign Out"
             style={{
               width: 32,
               height: 32,
@@ -218,7 +180,7 @@ export const TopBar: React.FC<TopBarProps> = ({
               cursor: 'pointer'
             }}
           >
-            <LogOut size={14} />
+            <LogOut size={13} />
           </button>
         )}
       </div>

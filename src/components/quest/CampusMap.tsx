@@ -5,7 +5,7 @@ import { MapPin, Eye, EyeOff, Sparkles, X } from 'lucide-react';
 
 interface CampusMapProps {
   landmarks: CampusLandmark[];
-  activeStop: QuestStop;
+  activeStop?: QuestStop | null;
   onSelectLandmark: (landmark: CampusLandmark) => void;
   onOpenCheckIn: () => void;
 }
@@ -56,7 +56,8 @@ export const CampusMap: React.FC<CampusMapProps> = ({
           <CompassRose
             bearingDegrees={28}
             targetDistanceMeters={48}
-            isLockedOnTarget={true}
+            isLockedOnTarget={Boolean(activeStop)}
+            size={38}
           />
         </div>
 
@@ -211,9 +212,9 @@ export const CampusMap: React.FC<CampusMapProps> = ({
 
         {/* Quest Landmark Pins */}
         {landmarks.map((lm) => {
-          const isStopActive = lm.activeClueForStop === activeStop.stopNumber;
-          const isStopSolved = lm.activeClueForStop && lm.activeClueForStop < activeStop.stopNumber;
-          const isStopLocked = lm.activeClueForStop && lm.activeClueForStop > activeStop.stopNumber;
+          const isStopActive = activeStop ? lm.activeClueForStop === activeStop.stopNumber : false;
+          const isStopSolved = activeStop && lm.activeClueForStop ? lm.activeClueForStop < activeStop.stopNumber : false;
+          const isStopLocked = activeStop && lm.activeClueForStop ? lm.activeClueForStop > activeStop.stopNumber : false;
 
           return (
             <g
@@ -371,7 +372,7 @@ export const CampusMap: React.FC<CampusMapProps> = ({
             {selectedPin.loreSnippet}
           </p>
 
-          {selectedPin.activeClueForStop === activeStop.stopNumber && (
+          {activeStop && selectedPin.activeClueForStop === activeStop.stopNumber && (
             <div
               style={{
                 display: 'flex',

@@ -1,6 +1,5 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type { Quest, Guild, UserProfile, ChatMessage, QuestStop } from '../types';
-import { initialWeeklyQuest, initialGuilds } from '../data/campusData';
 
 const CACHE_KEYS = {
   QUEST: 'sideq_quest_progress',
@@ -100,7 +99,7 @@ export const dbService = {
   },
 
   // Load Real Quest Progress For Student
-  async loadQuest(userId?: string): Promise<Quest> {
+  async loadQuest(userId?: string): Promise<Quest | null> {
     if (isSupabaseConfigured()) {
       try {
         // 1. Fetch Quest from DB
@@ -109,118 +108,144 @@ export const dbService = {
           .select('*')
           .order('week_number', { ascending: false })
           .limit(1)
-          .single();
+          .maybeSingle();
 
-        // 2. Fetch Quest Stops from DB
-        const { data: stopsData, error: sErr } = await supabase
-          .from('quest_stops')
-          .select('*')
-          .eq('quest_id', questData ? questData.id : 'quest-week-07')
-          .order('stop_number', { ascending: true });
-
-        // 3. Fetch Student's specific progress
-        let activeStopIndex = 0; // Fresh student starts at Stop 1!
-        let completedStops: string[] = [];
-        let isCompleted = false;
-
-        if (userId) {
-          const { data: progressData } = await supabase
-            .from('user_quest_progress')
+        if (questData && !qErr) {
+          // 2. Fetch Quest Stops from DB
+          const { data: stopsData, error: sErr } = await supabase
+            .from('quest_stops')
             .select('*')
-            .eq('user_id', userId)
-            .eq('quest_id', questData ? questData.id : 'quest-week-07')
-            .single();
+            .eq('quest_id', questData.id)
+            .order('stop_number', { ascending: true });
 
-          if (progressData) {
-            activeStopIndex = progressData.active_stop_index ?? 0;
-            completedStops = progressData.completed_stops ?? [];
-            isCompleted = progressData.is_completed ?? false;
+          // 3. Fetch Student's specific progress
+          let activeStopIndex = 0;
+          let completedStops: string[] = [];
+          let isCompleted = false;
+
+          if (userId) {
+            const { data: progressData } = await supabase
+              .from('user_quest_progress')
+              .select('*')
+              .eq('user_id', userId)
+              .eq('quest_id', questData.id)
+              .maybeSingle();
+
+            if (progressData) {
+              activeStopIndex = progressData.active_stop_index ?? 0;
+              completedStops = progressData.completed_stops ?? [];
+              isCompleted = progressData.is_completed ?? false;
+            }
           }
-        }
 
-        if (questData && stopsData && !qErr && !sErr) {
-          const formattedStops: QuestStop[] = stopsData.map((s) => {
-            const isDone = completedStops.includes(s.id);
-            const isActive = !isDone && s.stop_number - 1 === activeStopIndex;
+          if (stopsData && !sErr && stopsData.length > 0) {
+            const formattedStops: QuestStop[] = stopsData.map((s) => {
+              const isDone = completedStops.includes(s.id);
+              const isActive = !isDone && s.stop_number - 1 === activeStopIndex;
+              return {
+                id: s.id,
+                stopNumber: s.stop_number,
+                title: s.title,
+                locationName: s.location_name,
+                metaphoricRiddle: s.metaphoric_riddle,
+                storyLoreUnlock: s.story_lore_unlock,
+                historicalNote: s.historical_note,
+                status: isDone ? 'completed' : isActive ? 'active' : 'locked',
+                unlockMethod: s.unlock_method,
+                targetCoords: {
+                  lat: s.target_lat || 42.3601,
+                  lng: s.target_lng || -71.0942,
+                  campusX: s.campus_x,
+                  campusY: s.campus_y
+                },
+                qrPayload: s.qr_payload,
+                xpReward: s.xp_reward
+              };
+            });
+
             return {
-              id: s.id,
-              stopNumber: s.stop_number,
-              title: s.title,
-              locationName: s.location_name,
-              metaphoricRiddle: s.metaphoric_riddle,
-              storyLoreUnlock: s.story_lore_unlock,
-              historicalNote: s.historical_note,
-              status: isDone ? 'completed' : isActive ? 'active' : 'locked',
-              unlockMethod: s.unlock_method,
-              targetCoords: {
-                lat: s.target_lat || 42.3601,
-                lng: s.target_lng || -71.0942,
-                campusX: s.campus_x,
-                campusY: s.campus_y
-              },
-              qrPayload: s.qr_payload,
-              xpReward: s.xp_reward
+              id: questData.id,
+              title: questData.title,
+              episode: questData.episode,
+              weekNumber: questData.week_number,
+              theme: questData.theme,
+              narrativeIntro: questData.narrative_intro,
+              resolutionNarrative: questData.resolution_narrative,
+              totalXp: questData.total_xp,
+              publishedAt: questData.published_at,
+              expiresAt: questData.expires_at,
+              activeStopIndex,
+              isCompleted,
+              stops: formattedStops
             };
-          });
-
-          return {
-            id: questData.id,
-            title: questData.title,
-            episode: questData.episode,
-            weekNumber: questData.week_number,
-            theme: questData.theme,
-            narrativeIntro: questData.narrative_intro,
-            resolutionNarrative: questData.resolution_narrative,
-            totalXp: questData.total_xp,
-            publishedAt: questData.published_at,
-            expiresAt: questData.expires_at,
-            activeStopIndex,
-            isCompleted,
-            stops: formattedStops
-          };
+          }
         }
       } catch (err) {
         console.warn('Supabase fetch quest error:', err);
       }
     }
 
-    // Local Storage or Fresh Initial Quest (starting at Stop 1)
-    const cached = localStorage.getItem(CACHE_KEYS.QUEST);
-    if (cached) {
-      try {
-        return JSON.parse(cached);
-      } catch {}
-    }
-
-    // Default fresh quest: Stop 1 is ACTIVE, others are LOCKED
-    return {
-      ...initialWeeklyQuest,
-      activeStopIndex: 0,
-      isCompleted: false,
-      stops: initialWeeklyQuest.stops.map((s, idx) => ({
-        ...s,
-        status: idx === 0 ? 'active' : 'locked'
-      }))
-    };
+    // When admin hasn't created any quests yet, return null
+    return null;
   },
 
-  // Save Quest Progress
-  async saveQuest(quest: Quest, userId: string): Promise<void> {
+  // Save Quest Progress & Quest Definitions
+  async saveQuest(quest: Quest, userId?: string): Promise<void> {
     localStorage.setItem(CACHE_KEYS.QUEST, JSON.stringify(quest));
 
-    if (isSupabaseConfigured() && userId) {
+    if (isSupabaseConfigured()) {
       try {
-        await supabase.from('user_quest_progress').upsert({
-          id: `${userId}_${quest.id}`,
-          user_id: userId,
-          quest_id: quest.id,
-          active_stop_index: quest.activeStopIndex,
-          is_completed: quest.isCompleted,
-          completed_stops: quest.stops.filter((s) => s.status === 'completed').map((s) => s.id),
-          updated_at: new Date().toISOString()
+        // 1. Upsert quest record
+        await supabase.from('quests').upsert({
+          id: quest.id,
+          title: quest.title,
+          episode: quest.episode,
+          week_number: quest.weekNumber || 1,
+          theme: quest.theme || 'Campus Mystery',
+          narrative_intro: quest.narrativeIntro,
+          resolution_narrative: quest.resolutionNarrative || '',
+          total_xp: quest.totalXp || 400,
+          published_at: quest.publishedAt || new Date().toISOString(),
+          expires_at: quest.expiresAt || new Date(Date.now() + 7 * 86400000).toISOString()
         });
+
+        // 2. Upsert stops
+        if (quest.stops && quest.stops.length > 0) {
+          const stopsToUpsert = quest.stops.map((s) => ({
+            id: s.id,
+            quest_id: quest.id,
+            stop_number: s.stopNumber,
+            title: s.title,
+            location_name: s.locationName,
+            metaphoric_riddle: s.metaphoricRiddle,
+            story_lore_unlock: s.storyLoreUnlock,
+            historical_note: s.historicalNote,
+            unlock_method: s.unlockMethod,
+            target_lat: s.targetCoords?.lat,
+            target_lng: s.targetCoords?.lng,
+            campus_x: s.targetCoords?.campusX,
+            campus_y: s.targetCoords?.campusY,
+            qr_payload: s.qrPayload,
+            xp_reward: s.xpReward
+          }));
+
+          await supabase.from('quest_stops').upsert(stopsToUpsert);
+        }
+
+        // 3. Upsert user progress if userId provided
+        if (userId) {
+          await supabase.from('user_quest_progress').upsert({
+            id: `${userId}_${quest.id}`,
+            user_id: userId,
+            quest_id: quest.id,
+            active_stop_index: quest.activeStopIndex,
+            is_completed: quest.isCompleted,
+            completed_stops: quest.stops.filter((s) => s.status === 'completed').map((s) => s.id),
+            updated_at: new Date().toISOString()
+          });
+        }
       } catch (err) {
-        console.warn('Supabase save quest progress error:', err);
+        console.warn('Supabase save quest error:', err);
       }
     }
   },
@@ -270,7 +295,7 @@ export const dbService = {
               recruitmentTags: g.recruitment_tags || [],
               isOpen: g.is_open ?? true,
               members: actualMembers,
-              perks: initialGuilds.find((ig) => ig.id === g.id)?.perks || []
+              perks: []
             };
           });
         }
@@ -279,18 +304,57 @@ export const dbService = {
       }
     }
 
-    const cached = localStorage.getItem(CACHE_KEYS.GUILDS);
-    if (cached) {
-      try {
-        return JSON.parse(cached);
-      } catch {}
-    }
-    return initialGuilds;
+    return [];
   },
 
-  // Save Guilds
+  // Save Guilds locally
   async saveGuilds(guilds: Guild[]): Promise<void> {
     localStorage.setItem(CACHE_KEYS.GUILDS, JSON.stringify(guilds));
+  },
+
+  // Create & Charter a Guild in Supabase
+  async createGuild(guild: Guild, founderId: string): Promise<void> {
+    if (isSupabaseConfigured()) {
+      try {
+        await supabase.from('guilds').upsert({
+          id: guild.id,
+          name: guild.name,
+          tag: guild.tag,
+          motto: guild.motto,
+          description: guild.description,
+          crest_id: guild.crestId,
+          banner_gradient: guild.bannerGradient,
+          accent_color: guild.accentColor,
+          level: guild.level,
+          current_xp: guild.currentXp,
+          next_level_xp: guild.nextLevelXp,
+          max_members: guild.maxMembers,
+          campus_rank: guild.campusRank,
+          weekly_xp: guild.weeklyXp,
+          all_time_xp: guild.allTimeXp,
+          recruitment_vibe: guild.recruitmentVibe,
+          recruitment_tags: guild.recruitmentTags,
+          is_open: guild.isOpen
+        });
+
+        if (founderId) {
+          await supabase.from('guild_members').upsert({
+            guild_id: guild.id,
+            user_id: founderId,
+            role: 'Grandmaster'
+          });
+
+          await supabase.from('profiles').update({
+            guild_id: guild.id,
+            guild_name: guild.name,
+            guild_tag: guild.tag,
+            guild_role: 'Grandmaster'
+          }).eq('id', founderId);
+        }
+      } catch (err) {
+        console.warn('Supabase create guild error:', err);
+      }
+    }
   },
 
   // Join a Guild

@@ -3,7 +3,7 @@ import type { Quest } from '../../types';
 import { X, KeyRound, Clock, Bot } from 'lucide-react';
 
 interface AdminChamberModalProps {
-  quest: Quest;
+  quest: Quest | null;
   onClose: () => void;
   onSaveQuest: (updatedQuest: Quest) => void;
 }
@@ -14,8 +14,10 @@ export const AdminChamberModal: React.FC<AdminChamberModalProps> = ({
   onSaveQuest
 }) => {
   const [activeAdminTab, setActiveAdminTab] = useState<'author' | 'stats' | 'schedule'>('author');
-  const [questTitle, setQuestTitle] = useState(quest.title);
-  const [narrativeIntro, setNarrativeIntro] = useState(quest.narrativeIntro);
+  const [questTitle, setQuestTitle] = useState(quest?.title || 'The First Campus Chronicle');
+  const [narrativeIntro, setNarrativeIntro] = useState(
+    quest?.narrativeIntro || 'The ancient university clock rings across the courtyard as clues surface...'
+  );
   const [showAiDraftNotice, setShowAiDraftNotice] = useState(false);
 
   return (
@@ -230,45 +232,92 @@ export const AdminChamberModal: React.FC<AdminChamberModalProps> = ({
             {/* Clue Chain Editor */}
             <div>
               <label style={{ fontSize: '11px', fontFamily: 'var(--font-display)', fontWeight: 700, color: 'var(--gold-primary)' }}>
-                CLUE STOPS CHAIN ({quest.stops.length} STOPS)
+                CLUE STOPS CHAIN ({(quest?.stops || []).length} STOPS)
               </label>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 6 }}>
-                {quest.stops.map((stop) => (
+                {(!quest?.stops || quest.stops.length === 0) ? (
                   <div
-                    key={stop.id}
                     style={{
-                      padding: '10px 12px',
+                      padding: '16px',
                       backgroundColor: 'rgba(255,255,255,0.03)',
-                      border: '1px solid rgba(255,255,255,0.08)',
+                      border: '1px dashed var(--border-gilded)',
                       borderRadius: 'var(--radius-sm)',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center'
+                      textAlign: 'center',
+                      fontSize: '12px',
+                      color: 'var(--text-muted)'
                     }}
                   >
-                    <div>
-                      <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-heading)' }}>
-                        Stop {stop.stopNumber}: {stop.title}
-                      </div>
-                      <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
-                        Target: {stop.locationName} • +{stop.xpReward} XP
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      <span style={{ fontSize: '9px', color: 'var(--gold-primary)', border: '1px solid rgba(197, 160, 89, 0.3)', padding: '2px 6px', borderRadius: 4 }}>
-                        GPS + QR
-                      </span>
-                    </div>
+                    No stops defined yet. Saving will register this quest and Stop 1 in Supabase!
                   </div>
-                ))}
+                ) : (
+                  quest.stops.map((stop) => (
+                    <div
+                      key={stop.id}
+                      style={{
+                        padding: '10px 12px',
+                        backgroundColor: 'rgba(255,255,255,0.03)',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        borderRadius: 'var(--radius-sm)',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-heading)' }}>
+                          Stop {stop.stopNumber}: {stop.title}
+                        </div>
+                        <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                          Target: {stop.locationName} • +{stop.xpReward} XP
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <span style={{ fontSize: '9px', color: 'var(--gold-primary)', border: '1px solid rgba(197, 160, 89, 0.3)', padding: '2px 6px', borderRadius: 4 }}>
+                          GPS + QR
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
 
             <button
               type="button"
               onClick={() => {
-                onSaveQuest({ ...quest, title: questTitle, narrativeIntro });
+                const defaultStops = quest?.stops && quest.stops.length > 0 ? quest.stops : [
+                  {
+                    id: `stop-${Date.now()}-1`,
+                    stopNumber: 1,
+                    title: 'The Great Gate Corbel',
+                    locationName: 'University Archway',
+                    metaphoricRiddle: 'Where stone faces watch incoming scholars, seek the seal at the apex of the vaulted gate.',
+                    storyLoreUnlock: 'The founding stonemasons carved their heraldic seal into the arch keystone in 1894.',
+                    historicalNote: 'Constructed by the collegiate founders as the gateway of wisdom.',
+                    status: 'active' as const,
+                    unlockMethod: 'both' as const,
+                    targetCoords: { lat: 42.3601, lng: -71.0942, campusX: 25, campusY: 30 },
+                    qrPayload: 'SIDEQ-STOP1-ARCHWAY',
+                    xpReward: 100
+                  }
+                ];
+
+                onSaveQuest({
+                  id: quest?.id || `quest-${Date.now()}`,
+                  title: questTitle,
+                  episode: quest?.episode || 'Chapter I: The Silent Bells',
+                  weekNumber: quest?.weekNumber || 1,
+                  theme: quest?.theme || 'Campus Origins',
+                  narrativeIntro,
+                  resolutionNarrative: quest?.resolutionNarrative || 'The first chapter concludes as the bell resonance returns.',
+                  totalXp: quest?.totalXp || 400,
+                  publishedAt: quest?.publishedAt || new Date().toISOString(),
+                  expiresAt: quest?.expiresAt || new Date(Date.now() + 7 * 86400000).toISOString(),
+                  activeStopIndex: quest?.activeStopIndex || 0,
+                  isCompleted: false,
+                  stops: defaultStops
+                });
                 onClose();
               }}
               style={{

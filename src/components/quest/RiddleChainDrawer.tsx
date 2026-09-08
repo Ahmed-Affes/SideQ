@@ -4,7 +4,7 @@ import { X, Lock, BookOpen } from 'lucide-react';
 import { WaxSeal } from '../common/WaxSeal';
 
 interface RiddleChainDrawerProps {
-  quest: Quest;
+  quest: Quest | null;
   onClose: () => void;
 }
 
@@ -60,7 +60,7 @@ export const RiddleChainDrawer: React.FC<RiddleChainDrawerProps> = ({ quest, onC
                 fontFamily: 'var(--font-display)'
               }}
             >
-              {quest.title}
+              {quest?.title || 'No Active Chapter'}
             </h3>
           </div>
 
@@ -85,29 +85,47 @@ export const RiddleChainDrawer: React.FC<RiddleChainDrawerProps> = ({ quest, onC
         </div>
 
         {/* Narrative Intro Excerpt */}
-        <div
-          style={{
-            padding: '12px 14px',
-            backgroundColor: 'rgba(11, 15, 25, 0.7)',
-            borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--border-gilded)',
-            fontSize: '12px',
-            lineHeight: 1.5,
-            color: 'var(--text-sub)'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-            <BookOpen size={14} color="var(--gold-primary)" />
-            <span style={{ fontSize: '11px', fontFamily: 'var(--font-display)', fontWeight: 700, color: 'var(--gold-primary)' }}>
-              THE LORE BACKGROUND
-            </span>
+        {quest?.narrativeIntro && (
+          <div
+            style={{
+              padding: '12px 14px',
+              backgroundColor: 'rgba(11, 15, 25, 0.7)',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border-gilded)',
+              fontSize: '12px',
+              lineHeight: 1.5,
+              color: 'var(--text-sub)'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+              <BookOpen size={14} color="var(--gold-primary)" />
+              <span style={{ fontSize: '11px', fontFamily: 'var(--font-display)', fontWeight: 700, color: 'var(--gold-primary)' }}>
+                THE LORE BACKGROUND
+              </span>
+            </div>
+            {quest.narrativeIntro}
           </div>
-          {quest.narrativeIntro}
-        </div>
+        )}
 
         {/* Clue Stops Timeline */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {quest.stops.map((stop, idx) => {
+          {!quest || quest.stops.length === 0 ? (
+            <div
+              style={{
+                padding: '30px 16px',
+                textAlign: 'center',
+                backgroundColor: 'rgba(11, 15, 25, 0.5)',
+                border: '1px dashed var(--border-gilded)',
+                borderRadius: 'var(--radius-md)',
+                color: 'var(--text-muted)',
+                fontSize: '12px',
+                lineHeight: 1.5
+              }}
+            >
+              The chapter chronicle is empty. When the campus Questmaster broadcasts the weekly mystery, the sequence of riddle stops will illuminate here.
+            </div>
+          ) : (
+            quest.stops.map((stop, idx) => {
             const isCompleted = stop.status === 'completed';
             const isActive = stop.status === 'active';
             const isLocked = stop.status === 'locked';
@@ -216,8 +234,9 @@ export const RiddleChainDrawer: React.FC<RiddleChainDrawerProps> = ({ quest, onC
                 </div>
               </div>
             );
-          })}
-        </div>
+          })
+        )}
+      </div>
       </div>
     </div>
   );

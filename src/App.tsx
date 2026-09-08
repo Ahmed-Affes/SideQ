@@ -10,16 +10,14 @@ import { RiddleChainDrawer } from './components/quest/RiddleChainDrawer';
 import { GuildHallView } from './components/guild/GuildHallView';
 import { GuildDirectoryView } from './components/guild/GuildDirectoryView';
 import { GuildCreateModal } from './components/guild/GuildCreateModal';
+import { GuildEmptyLanding } from './components/guild/GuildEmptyLanding';
 import { ChatView } from './components/chat/ChatView';
 import { LeaderboardView } from './components/leaderboard/LeaderboardView';
 import { ProfileView } from './components/profile/ProfileView';
 import { AdminChamberModal } from './components/admin/AdminChamberModal';
 
 import {
-  initialWeeklyQuest,
-  campusLandmarks,
-  initialGuilds,
-  initialChatMessages
+  campusLandmarks
 } from './data/campusData';
 import { dbService } from './services/dbService';
 import { authService } from './services/authService';
@@ -34,11 +32,11 @@ export function App() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
 
-  // Core Data State
-  const [quest, setQuest] = useState<Quest>(initialWeeklyQuest);
-  const [guilds, setGuilds] = useState<Guild[]>(initialGuilds);
+  // Core Data State (Starts pure empty for zero-data state)
+  const [quest, setQuest] = useState<Quest | null>(null);
+  const [guilds, setGuilds] = useState<Guild[]>([]);
   const [landmarks, setLandmarks] = useState<CampusLandmark[]>(campusLandmarks);
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>(initialChatMessages);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
 
   // Modal State
   const [isCheckInOpen, setIsCheckInOpen] = useState(false);
@@ -124,11 +122,13 @@ export function App() {
     );
   }
 
-  const activeStop = quest.stops[quest.activeStopIndex];
-  const userGuild = guilds.find((g) => g.id === user.guildId) || guilds[0];
+  const activeStop = quest && quest.stops.length > 0 ? quest.stops[quest.activeStopIndex] : null;
+  const userGuild = guilds.find((g) => g.id === user.guildId) || null;
 
   // Stop Unlock Handler (Saves to DB)
   const handleSuccessfulUnlock = async (stopId: string, earnedXp: number) => {
+    if (!quest || !activeStop) return;
+
     const updatedStops = quest.stops.map((s, idx) => {
       if (s.id === stopId) {
         return { ...s, status: 'completed' as const, unlockedAt: 'Just now' };
@@ -167,19 +167,21 @@ export function App() {
     setUser(updatedUser);
     await dbService.saveUserProfile(updatedUser);
 
-    // Grant Guild XP
-    const updatedGuilds = guilds.map((g) => {
-      if (g.id === user.guildId) {
-        return {
-          ...g,
-          currentXp: g.currentXp + earnedXp,
-          weeklyXp: g.weeklyXp + earnedXp
-        };
-      }
-      return g;
-    });
-    setGuilds(updatedGuilds);
-    await dbService.saveGuilds(updatedGuilds);
+    // Grant Guild XP if enrolled
+    if (user.guildId) {
+      const updatedGuilds = guilds.map((g) => {
+        if (g.id === user.guildId) {
+          return {
+            ...g,
+            currentXp: g.currentXp + earnedXp,
+            weeklyXp: g.weeklyXp + earnedXp
+          };
+        }
+        return g;
+      });
+      setGuilds(updatedGuilds);
+      await dbService.saveGuilds(updatedGuilds);
+    }
 
     // Update Landmark status
     setLandmarks((prevLandmarks) =>
@@ -219,7 +221,7 @@ export function App() {
           id: user.id,
           name: user.name,
           handle: user.handle,
-          avatarSeed: 'rowan',
+          avatarSeed: user.id,
           role: 'Grandmaster',
           level: user.level,
           title: user.title,
@@ -233,7 +235,7 @@ export function App() {
 
     const updatedGuilds = [...guilds, createdGuild];
     setGuilds(updatedGuilds);
-    await dbService.saveGuilds(updatedGuilds);
+    await dbService.createGuild(createdGuild, user.id);
 
     const updatedUser: UserProfile = {
       ...user,
@@ -245,6 +247,27 @@ export function App() {
     setUser(updatedUser);
     await dbService.saveUserProfile(updatedUser);
 
+    setGuildSubView('hall');
+  };
+
+  // Guild Join Handler
+  const handleJoinGuild = async (guildId: string) => {
+    const targetGuild = guilds.find((g) => g.id === guildId);
+    if (!targetGuild) return;
+
+    await dbService.joinGuild(user.id, guildId);
+
+    const updatedUser: UserProfile = {
+      ...user,
+      guildId: targetGuild.id,
+      guildName: targetGuild.name,
+      guildTag: targetGuild.tag,
+      guildRole: 'Scout'
+    };
+    setUser(updatedUser);
+
+    const refreshedGuilds = await dbService.loadGuilds();
+    setGuilds(refreshedGuilds);
     setGuildSubView('hall');
   };
 
@@ -296,21 +319,28 @@ export function App() {
 
             {/* Active Clue Parchment HUD Card */}
             <ActiveClueCard
-              questTitle={quest.title}
-              episode={quest.episode}
+              questTitle={quest?.title || 'The Campus Archives'}
+              episode={quest?.episode || 'Awaiting Next Chronicle'}
               activeStop={activeStop}
-              currentStopIndex={quest.activeStopIndex}
-              totalStops={quest.stops.length}
+              currentStopIndex={quest?.activeStopIndex || 0}
+              totalStops={quest?.stops?.length || 0}
               onOpenCheckIn={() => setIsCheckInOpen(true)}
               onOpenChainDrawer={() => setIsChainDrawerOpen(true)}
+              onOpenAdmin={() => setIsAdminOpen(true)}
             />
           </div>
         )}
 
-        {/* TAB 2: GUILDS (First Priority) */}
+        {/* TAB 2: GUILDS */}
         {activeTab === 'guild' && (
           <>
-            {guildSubView === 'hall' ? (
+            {!user.guildId || !userGuild ? (
+              <GuildEmptyLanding
+                guilds={guilds}
+                onJoinGuild={handleJoinGuild}
+                onOpenCreateGuild={() => setIsCreateGuildOpen(true)}
+              />
+            ) : guildSubView === 'hall' ? (
               <GuildHallView
                 guild={userGuild}
                 user={user}
@@ -341,7 +371,9 @@ export function App() {
         {activeTab === 'leaderboard' && <LeaderboardView user={user} />}
 
         {/* TAB 5: PROFILE & CHRONICLES */}
-        {activeTab === 'profile' && <ProfileView user={user} />}
+        {activeTab === 'profile' && (
+          <ProfileView user={user} onOpenAdmin={() => setIsAdminOpen(true)} />
+        )}
       </main>
 
       {/* Persistent Bottom Mobile Tab Navigation */}
@@ -349,7 +381,7 @@ export function App() {
 
       {/* MODALS */}
       {/* 1. Location Check-In Modal (GPS & QR) */}
-      {isCheckInOpen && (
+      {isCheckInOpen && activeStop && (
         <CheckInModal
           activeStop={activeStop}
           onClose={() => setIsCheckInOpen(false)}
@@ -375,9 +407,9 @@ export function App() {
         <AdminChamberModal
           quest={quest}
           onClose={() => setIsAdminOpen(false)}
-          onSaveQuest={(updated) => {
+          onSaveQuest={async (updated) => {
             setQuest(updated);
-            dbService.saveQuest(updated, user.id);
+            await dbService.saveQuest(updated, user.id);
           }}
         />
       )}
