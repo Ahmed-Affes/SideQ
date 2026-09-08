@@ -92,7 +92,19 @@ CREATE TABLE IF NOT EXISTS public.user_quest_progress (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
--- 6. CHAT MESSAGES TABLE (Realtime Enabled)
+-- 6. GUILD MEMBERS TABLE
+CREATE TABLE IF NOT EXISTS public.guild_members (
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  guild_id TEXT REFERENCES public.guilds(id) ON DELETE CASCADE,
+  user_id TEXT REFERENCES public.profiles(id) ON DELETE CASCADE,
+  role TEXT DEFAULT 'Scout',
+  weekly_xp INTEGER DEFAULT 0,
+  quests_completed INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+  UNIQUE(guild_id, user_id)
+);
+
+-- 7. CHAT MESSAGES TABLE (Realtime Enabled)
 CREATE TABLE IF NOT EXISTS public.chat_messages (
   id TEXT PRIMARY KEY,
   channel_id TEXT NOT NULL, -- 'campus-general' or 'guild-private'
@@ -112,6 +124,7 @@ CREATE TABLE IF NOT EXISTS public.chat_messages (
 -- ==============================================================================
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.guilds ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.guild_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.quests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.quest_stops ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_quest_progress ENABLE ROW LEVEL SECURITY;
@@ -125,6 +138,9 @@ CREATE POLICY "Public update profiles" ON public.profiles FOR UPDATE USING (true
 CREATE POLICY "Public read guilds" ON public.guilds FOR SELECT USING (true);
 CREATE POLICY "Public insert guilds" ON public.guilds FOR INSERT WITH CHECK (true);
 CREATE POLICY "Public update guilds" ON public.guilds FOR UPDATE USING (true);
+
+CREATE POLICY "Public read guild members" ON public.guild_members FOR SELECT USING (true);
+CREATE POLICY "Public write guild members" ON public.guild_members FOR ALL USING (true);
 
 CREATE POLICY "Public read quests" ON public.quests FOR SELECT USING (true);
 CREATE POLICY "Public read quest stops" ON public.quest_stops FOR SELECT USING (true);

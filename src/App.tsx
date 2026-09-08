@@ -54,7 +54,7 @@ export function App() {
         setUser(currentUser);
 
         const [loadedQuest, loadedGuilds, loadedChat] = await Promise.all([
-          dbService.loadQuest(),
+          dbService.loadQuest(currentUser?.id),
           dbService.loadGuilds(),
           dbService.loadChatMessages()
         ]);
@@ -338,7 +338,7 @@ export function App() {
         )}
 
         {/* TAB 4: LEADERBOARD */}
-        {activeTab === 'leaderboard' && <LeaderboardView />}
+        {activeTab === 'leaderboard' && <LeaderboardView user={user} />}
 
         {/* TAB 5: PROFILE & CHRONICLES */}
         {activeTab === 'profile' && <ProfileView user={user} />}

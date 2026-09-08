@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { authService } from '../../services/authService';
-import { isSupabaseConfigured } from '../../lib/supabase';
+import { isSupabaseConfigured, getSupabaseConfig, saveSupabaseConfig } from '../../lib/supabase';
 import type { UserProfile } from '../../types';
 import { WaxSeal } from '../common/WaxSeal';
-import { User, Mail, Lock, AtSign, ArrowRight, AlertCircle, Database } from 'lucide-react';
+import { User, Mail, Lock, AtSign, ArrowRight, AlertCircle, Database, CheckCircle2, Key } from 'lucide-react';
 
 interface AuthViewProps {
   onAuthenticated: (profile: UserProfile) => void;
@@ -19,7 +19,24 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated }) => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successNotice, setSuccessNotice] = useState<string | null>(null);
 
+  // In-app Supabase credentials input
+  const [showConfigModal, setShowConfigModal] = useState(false);
+  const { url: initialUrl, key: initialKey } = getSupabaseConfig();
+  const [supabaseUrlInput, setSupabaseUrlInput] = useState(initialUrl);
+  const [supabaseKeyInput, setSupabaseKeyInput] = useState(initialKey);
+
   const hasCloud = isSupabaseConfigured();
+
+  const handleSaveConfig = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!supabaseUrlInput.trim() || !supabaseKeyInput.trim()) {
+      setErrorMsg('Please enter both Supabase Project URL and Anon Key.');
+      return;
+    }
+
+    saveSupabaseConfig(supabaseUrlInput, supabaseKeyInput);
+    window.location.reload();
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,6 +45,13 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated }) => {
     setIsLoading(true);
 
     try {
+      if (!hasCloud) {
+        setErrorMsg('Supabase is not configured yet! Please click "Connect Supabase" below and enter your Project URL and Anon Key.');
+        setIsLoading(false);
+        setShowConfigModal(true);
+        return;
+      }
+
       if (mode === 'signup') {
         const { profile, error } = await authService.signUp(email, password, name, handle);
         if (error) {
@@ -39,7 +63,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated }) => {
         if (profile) {
           onAuthenticated(profile);
         } else {
-          setSuccessNotice('Induction registered! Please check your email to verify your collegiate credentials, or sign in.');
+          setSuccessNotice('Account registered in Supabase! If you have email confirmation enabled, please check your inbox, or sign in below.');
           setMode('signin');
         }
       } else {
@@ -55,19 +79,10 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated }) => {
         }
       }
     } catch (err: any) {
-      setErrorMsg(err.message || 'Authentication sequence failed.');
+      setErrorMsg(err.message || 'Authentication failed with Supabase.');
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleDemoSignIn = async () => {
-    setIsLoading(true);
-    const { profile } = await authService.signInDemo();
-    if (profile) {
-      onAuthenticated(profile);
-    }
-    setIsLoading(false);
   };
 
   return (
@@ -94,7 +109,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated }) => {
       <div
         style={{
           width: '100%',
-          maxWidth: '380px',
+          maxWidth: '390px',
           backgroundColor: 'rgba(14, 20, 36, 0.95)',
           backdropFilter: 'blur(20px)',
           border: '1.5px solid var(--border-gilded)',
@@ -132,29 +147,143 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated }) => {
               letterSpacing: '0.08em'
             }}
           >
-            CAMPUS CIPHER AUTHENTICATION
+            REAL DATABASE AUTHENTICATION
           </span>
         </div>
 
-        {/* Database Connection Status Pill */}
+        {/* Database Connection Status Bar */}
         <div
+          onClick={() => setShowConfigModal(true)}
           style={{
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            gap: 6,
-            backgroundColor: hasCloud ? 'rgba(16, 185, 129, 0.12)' : 'rgba(229, 192, 123, 0.1)',
-            border: `1px solid ${hasCloud ? 'rgba(16, 185, 129, 0.35)' : 'rgba(197, 160, 89, 0.3)'}`,
-            padding: '4px 10px',
+            justifyContent: 'space-between',
+            backgroundColor: hasCloud ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.15)',
+            border: `1px solid ${hasCloud ? 'rgba(16, 185, 129, 0.35)' : 'rgba(239, 68, 68, 0.4)'}`,
+            padding: '6px 12px',
             borderRadius: 14,
-            fontSize: '10px',
-            color: hasCloud ? '#34D399' : 'var(--gold-primary)',
-            fontWeight: 700
+            fontSize: '11px',
+            color: hasCloud ? '#34D399' : '#F87171',
+            fontWeight: 700,
+            cursor: 'pointer'
           }}
         >
-          <Database size={12} />
-          <span>{hasCloud ? 'Supabase Database Connected' : 'Arcane Local Cache Mode'}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Database size={13} />
+            <span>{hasCloud ? 'Connected to Supabase Cloud' : 'Supabase Not Connected Yet'}</span>
+          </div>
+
+          <span style={{ fontSize: '10px', textDecoration: 'underline', color: 'var(--gold-primary)' }}>
+            {hasCloud ? 'Edit Keys' : 'Connect Now'}
+          </span>
         </div>
+
+        {/* In-App Supabase Config Drawer if needed */}
+        {(!hasCloud || showConfigModal) && (
+          <div
+            style={{
+              backgroundColor: 'rgba(7, 10, 18, 0.95)',
+              border: '1px solid var(--border-gold-bright)',
+              borderRadius: 'var(--radius-md)',
+              padding: '14px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 10
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--gold-primary)' }}>
+                <Key size={14} />
+                <span style={{ fontSize: '11px', fontWeight: 800, fontFamily: 'var(--font-display)' }}>
+                  CONNECT YOUR SUPABASE PROJECT
+                </span>
+              </div>
+              {hasCloud && (
+                <button
+                  type="button"
+                  onClick={() => setShowConfigModal(false)}
+                  style={{ color: 'var(--text-muted)', cursor: 'pointer', fontSize: '12px' }}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            <p style={{ fontSize: '11px', color: 'var(--text-sub)', margin: 0, lineHeight: 1.4 }}>
+              Paste your Supabase API credentials below (from your Supabase Dashboard &gt; Project Settings &gt; API) to save real accounts and real database progress:
+            </p>
+
+            <form onSubmit={handleSaveConfig} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div>
+                <label style={{ fontSize: '9px', fontWeight: 700, color: 'var(--gold-secondary)' }}>
+                  PROJECT URL
+                </label>
+                <input
+                  type="url"
+                  required
+                  value={supabaseUrlInput}
+                  onChange={(e) => setSupabaseUrlInput(e.target.value)}
+                  placeholder="https://your-project.supabase.co"
+                  style={{
+                    width: '100%',
+                    height: 36,
+                    padding: '0 10px',
+                    backgroundColor: 'rgba(255,255,255,0.05)',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    borderRadius: 4,
+                    color: '#fff',
+                    fontSize: '11px'
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '9px', fontWeight: 700, color: 'var(--gold-secondary)' }}>
+                  ANON PUBLIC API KEY
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={supabaseKeyInput}
+                  onChange={(e) => setSupabaseKeyInput(e.target.value)}
+                  placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6..."
+                  style={{
+                    width: '100%',
+                    height: 36,
+                    padding: '0 10px',
+                    backgroundColor: 'rgba(255,255,255,0.05)',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    borderRadius: 4,
+                    color: '#fff',
+                    fontSize: '11px'
+                  }}
+                />
+              </div>
+
+              <button
+                type="submit"
+                style={{
+                  height: 38,
+                  backgroundColor: 'var(--cipher-emerald)',
+                  color: '#042718',
+                  borderRadius: 6,
+                  border: 'none',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  fontFamily: 'var(--font-display)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6
+                }}
+              >
+                <CheckCircle2 size={14} />
+                <span>SAVE & CONNECT TO SUPABASE</span>
+              </button>
+            </form>
+          </div>
+        )}
 
         {/* Mode Switcher */}
         <div
@@ -226,7 +355,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated }) => {
               color: '#FCA5A5'
             }}
           >
-            <AlertCircle size={15} flex-shrink="0" />
+            <AlertCircle size={15} />
             <span>{errorMsg}</span>
           </div>
         )}
@@ -461,30 +590,10 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated }) => {
               boxShadow: '0 4px 16px rgba(229, 192, 123, 0.4)'
             }}
           >
-            <span>{isLoading ? 'COMMUNING WITH REGISTRY…' : mode === 'signup' ? 'ENLIST IN SOCIETY' : 'VERIFY & ENTER'}</span>
+            <span>{isLoading ? 'COMMUNING WITH SUPABASE…' : mode === 'signup' ? 'ENLIST IN SUPABASE' : 'VERIFY & ENTER'}</span>
             <ArrowRight size={16} />
           </button>
         </form>
-
-        {/* 1-Tap Field Scout Demo Bypass */}
-        <div style={{ paddingTop: 6, borderTop: '1px solid rgba(255, 255, 255, 0.08)', textAlign: 'center' }}>
-          <button
-            type="button"
-            onClick={handleDemoSignIn}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--gold-secondary)',
-              fontSize: '11px',
-              fontFamily: 'var(--font-display)',
-              fontWeight: 700,
-              cursor: 'pointer',
-              padding: '4px 8px'
-            }}
-          >
-            ⚡ Enter as Field Scout Rowan (1-Tap Demo)
-          </button>
-        </div>
       </div>
     </div>
   );

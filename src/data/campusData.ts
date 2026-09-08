@@ -230,19 +230,6 @@ export const initialGuilds: Guild[] = [
     ],
     members: [
       {
-        id: 'user-01',
-        name: 'Rowan Vance',
-        handle: '@rvance',
-        avatarSeed: 'rowan',
-        role: 'Officer',
-        level: 7,
-        title: 'Apprentice Cryptographer',
-        weeklyXpContributed: 350,
-        questsCompleted: 6,
-        isOnline: true,
-        statusMessage: 'Camping by Founders Tower steps'
-      },
-      {
         id: 'user-02',
         name: 'Elena Rostova',
         handle: '@rostova_e',
@@ -368,52 +355,28 @@ export const initialGuilds: Guild[] = [
 ];
 
 export const initialUserProfile: UserProfile = {
-  id: 'user-01',
-  name: 'Rowan Vance',
-  handle: '@rvance',
-  title: 'Apprentice Cryptographer',
-  level: 7,
-  currentXp: 1850,
-  nextLevelXp: 2400,
+  id: 'user-new',
+  name: 'Scholar Initiate',
+  handle: '@initiate',
+  title: 'Novice Initiate',
+  level: 1,
+  currentXp: 0,
+  nextLevelXp: 1000,
   guildId: 'guild-chronos',
   guildName: 'Chronos Keepers',
   guildTag: 'CHRONO',
-  guildRole: 'Officer',
-  completedQuestsCount: 6,
-  locationsDiscovered: 14,
-  currentStreakDays: 5,
+  guildRole: 'Scout',
+  completedQuestsCount: 0,
+  locationsDiscovered: 0,
+  currentStreakDays: 1,
   badges: [
     {
-      id: 'badge-night-owl',
-      name: 'Night Inquirer',
-      description: 'Checked into a campus stop past 10:00 PM under moonlight.',
-      icon: 'Moon',
-      rarity: 'Arcane',
-      unlockedDate: 'Oct 12'
-    },
-    {
-      id: 'badge-clockwork',
-      name: 'Chronometer',
-      description: 'Solved a riddle chain in under 45 minutes.',
-      icon: 'Clock',
-      rarity: 'Master',
-      unlockedDate: 'Oct 19'
-    },
-    {
-      id: 'badge-first-step',
-      name: 'The Initiate Seal',
-      description: 'Completed your maiden weekly story quest on campus.',
+      id: 'badge-initiate',
+      name: 'The Maiden Seal',
+      description: 'Enrolled into the Sidequest Society.',
       icon: 'Compass',
       rarity: 'Novice',
-      unlockedDate: 'Sep 28'
-    },
-    {
-      id: 'badge-gargoyle',
-      name: 'Stone Gaze',
-      description: 'Found all 3 architectural gargoyles in the North Courtyard.',
-      icon: 'Eye',
-      rarity: 'Arcane',
-      unlockedDate: 'Oct 04'
+      unlockedDate: 'Today'
     }
   ]
 };
@@ -423,17 +386,15 @@ export const initialLeaderboards: {
   guildDominion: LeaderboardEntry[];
 } = {
   weeklySolo: [
-    { rank: 1, id: 'u-10', name: 'Kaelen Voss', guildTag: 'OWLS', completionTimeFormatted: '38m 12s', score: 950, badgesCount: 18 },
-    { rank: 2, id: 'u-02', name: 'Elena Rostova', guildTag: 'CHRONO', completionTimeFormatted: '44m 05s', score: 950, badgesCount: 22 },
-    { rank: 3, id: 'u-01', name: 'Rowan Vance (You)', guildTag: 'CHRONO', completionTimeFormatted: 'In Progress (Stop 2)', score: 350, badgesCount: 14, isCurrentPlayer: true },
-    { rank: 4, id: 'u-15', name: 'Mira Sterling', guildTag: 'MOSS', completionTimeFormatted: '52m 40s', score: 950, badgesCount: 12 },
-    { rank: 5, id: 'u-22', name: 'Julian Drake', guildTag: 'ALCH', completionTimeFormatted: '1h 04m', score: 950, badgesCount: 9 }
+    { rank: 1, id: 'u-10', name: 'Kaelen Voss', guildTag: 'OWLS', completionTimeFormatted: '38m 12s', score: 950, badgesCount: 4 },
+    { rank: 2, id: 'u-02', name: 'Elena Rostova', guildTag: 'CHRONO', completionTimeFormatted: '44m 05s', score: 750, badgesCount: 3 },
+    { rank: 3, id: 'u-15', name: 'Mira Sterling', guildTag: 'MOSS', completionTimeFormatted: '52m 40s', score: 550, badgesCount: 2 },
+    { rank: 4, id: 'u-22', name: 'Julian Drake', guildTag: 'OWLS', completionTimeFormatted: '1h 04m', score: 350, badgesCount: 1 }
   ],
   guildDominion: [
     { rank: 1, id: 'g-01', name: 'Order of the Arcane Owls', guildTag: 'OWLS', score: 2940 },
     { rank: 2, id: 'g-02', name: 'Sunken Garden Society', guildTag: 'MOSS', score: 2410 },
-    { rank: 3, id: 'g-03', name: 'Chronos Keepers (Your Guild)', guildTag: 'CHRONO', score: 1840, isCurrentPlayer: true },
-    { rank: 4, id: 'g-04', name: 'The Alchemical Union', guildTag: 'ALCH', score: 1250 }
+    { rank: 3, id: 'g-03', name: 'Chronos Keepers', guildTag: 'CHRONO', score: 1840 }
   ]
 };
 
@@ -463,11 +424,11 @@ export const initialChatMessages: ChatMessage[] = [
   {
     id: 'msg-03',
     channelId: 'campus-general',
-    senderId: 'user-01',
-    senderName: 'Rowan Vance',
-    senderHandle: '@rvance',
+    senderId: 'user-04',
+    senderName: 'Marcus Thorne',
+    senderHandle: '@thorne_m',
     guildTag: 'CHRONO',
-    senderTitle: 'Apprentice Cryptographer',
+    senderTitle: 'Cipher Scout',
     text: 'Good catch Zoe! Heading over to check out Stop 2 now with the Chronos squad.',
     timestamp: '2:25 PM'
   },
@@ -480,15 +441,5 @@ export const initialChatMessages: ChatMessage[] = [
     senderRole: 'Grandmaster',
     text: 'War room briefing: We need 1 more member to complete the synchronized Clock Tower check-in for our mini-challenge!',
     timestamp: '2:30 PM'
-  },
-  {
-    id: 'msg-g-02',
-    channelId: 'guild-private',
-    senderId: 'user-04',
-    senderName: 'Aria Thorne',
-    senderHandle: '@thorne_aria',
-    senderRole: 'Chronicler',
-    text: 'I just scanned Stop 1! Rowan is near the tower steps right now.',
-    timestamp: '2:35 PM'
   }
 ];

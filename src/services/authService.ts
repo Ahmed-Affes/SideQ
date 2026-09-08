@@ -12,47 +12,25 @@ export const authService = {
   // Sign Up with Email, Password, Name, and Handle
   async signUp(email: string, password: string, name: string, handle: string) {
     if (!isSupabaseConfigured()) {
-      // Local fallback account
-      const demoId = `user-${Date.now()}`;
-      const newProfile: UserProfile = {
-        id: demoId,
-        name: name || 'New Scholar',
-        handle: handle.startsWith('@') ? handle : `@${handle}`,
-        title: 'Novice Initiate',
-        level: 1,
-        currentXp: 0,
-        nextLevelXp: 1000,
-        guildId: 'guild-chronos',
-        guildName: 'Chronos Keepers',
-        guildTag: 'CHRONO',
-        guildRole: 'Scout',
-        completedQuestsCount: 0,
-        locationsDiscovered: 0,
-        currentStreakDays: 1,
-        badges: [
-          {
-            id: 'badge-initiate',
-            name: 'The Maiden Seal',
-            description: 'Enrolled into the Sidequest Society.',
-            icon: 'Compass',
-            rarity: 'Novice',
-            unlockedDate: 'Today'
-          }
-        ]
+      return {
+        data: null,
+        profile: null,
+        error: 'Supabase database is not connected. Please configure your Supabase Project URL and Anon Key to register real accounts.'
       };
-      localStorage.setItem('sideq_user_profile', JSON.stringify(newProfile));
-      localStorage.setItem('sideq_session', JSON.stringify({ user: { id: demoId, email } }));
-      return { data: { user: { id: demoId, email } }, profile: newProfile, error: null };
     }
+
+    const cleanEmail = email.trim();
+    const cleanName = name.trim() || 'Scholar Initiate';
+    const cleanHandle = handle.trim().startsWith('@') ? handle.trim() : `@${handle.trim()}`;
 
     // Real Supabase Auth SignUp
     const { data, error } = await supabase.auth.signUp({
-      email,
+      email: cleanEmail,
       password,
       options: {
         data: {
-          name,
-          handle: handle.startsWith('@') ? handle : `@${handle}`
+          name: cleanName,
+          handle: cleanHandle
         }
       }
     });
@@ -62,11 +40,11 @@ export const authService = {
     }
 
     if (data.user) {
-      // Create or upsert profile in public.profiles table
+      // Create initial profile in public.profiles table
       const newProfile: UserProfile = {
         id: data.user.id,
-        name: name || 'New Scholar',
-        handle: handle.startsWith('@') ? handle : `@${handle}`,
+        name: cleanName,
+        handle: cleanHandle,
         title: 'Novice Initiate',
         level: 1,
         currentXp: 0,
@@ -123,31 +101,17 @@ export const authService = {
   // Sign In with Email & Password
   async signIn(email: string, password: string) {
     if (!isSupabaseConfigured()) {
-      const demoId = `user-demo`;
-      const profile: UserProfile = {
-        id: demoId,
-        name: email.split('@')[0] || 'Scholar',
-        handle: `@${email.split('@')[0]}`,
-        title: 'Apprentice Cryptographer',
-        level: 2,
-        currentXp: 450,
-        nextLevelXp: 1200,
-        guildId: 'guild-chronos',
-        guildName: 'Chronos Keepers',
-        guildTag: 'CHRONO',
-        guildRole: 'Scout',
-        completedQuestsCount: 1,
-        locationsDiscovered: 3,
-        currentStreakDays: 2,
-        badges: []
+      return {
+        data: null,
+        profile: null,
+        error: 'Supabase database is not connected. Please connect your Supabase project in the setup box to log in to real accounts.'
       };
-      localStorage.setItem('sideq_user_profile', JSON.stringify(profile));
-      localStorage.setItem('sideq_session', JSON.stringify({ user: { id: demoId, email } }));
-      return { data: { user: { id: demoId, email } }, profile, error: null };
     }
 
+    const cleanEmail = email.trim();
+
     const { data, error } = await supabase.auth.signInWithPassword({
-      email,
+      email: cleanEmail,
       password
     });
 
@@ -157,37 +121,37 @@ export const authService = {
 
     if (data.user) {
       // Fetch user profile from Supabase
-      const { data: profileData } = await supabase
+      const { data: profileData, error: profileErr } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', data.user.id)
         .single();
 
       let profile: UserProfile;
-      if (profileData) {
+      if (profileData && !profileErr) {
         profile = {
           id: profileData.id,
           name: profileData.name,
           handle: profileData.handle,
-          title: profileData.title,
-          level: profileData.level,
-          currentXp: profileData.current_xp,
-          nextLevelXp: profileData.next_level_xp,
-          guildId: profileData.guild_id,
-          guildName: profileData.guild_name,
-          guildTag: profileData.guild_tag,
-          guildRole: profileData.guild_role,
-          completedQuestsCount: profileData.completed_quests_count,
-          locationsDiscovered: profileData.locations_discovered,
-          currentStreakDays: profileData.current_streak_days,
+          title: profileData.title || 'Novice Initiate',
+          level: profileData.level || 1,
+          currentXp: profileData.current_xp || 0,
+          nextLevelXp: profileData.next_level_xp || 1000,
+          guildId: profileData.guild_id || 'guild-chronos',
+          guildName: profileData.guild_name || 'Chronos Keepers',
+          guildTag: profileData.guild_tag || 'CHRONO',
+          guildRole: profileData.guild_role || 'Scout',
+          completedQuestsCount: profileData.completed_quests_count || 0,
+          locationsDiscovered: profileData.locations_discovered || 0,
+          currentStreakDays: profileData.current_streak_days || 1,
           badges: profileData.badges || []
         };
       } else {
         // Create initial profile if first login
         profile = {
           id: data.user.id,
-          name: data.user.user_metadata?.name || email.split('@')[0],
-          handle: data.user.user_metadata?.handle || `@${email.split('@')[0]}`,
+          name: data.user.user_metadata?.name || cleanEmail.split('@')[0],
+          handle: data.user.user_metadata?.handle || `@${cleanEmail.split('@')[0]}`,
           title: 'Novice Initiate',
           level: 1,
           currentXp: 0,
@@ -199,117 +163,94 @@ export const authService = {
           completedQuestsCount: 0,
           locationsDiscovered: 0,
           currentStreakDays: 1,
-          badges: []
+          badges: [
+            {
+              id: 'badge-initiate',
+              name: 'The Maiden Seal',
+              description: 'Enrolled into the Sidequest Society.',
+              icon: 'Compass',
+              rarity: 'Novice',
+              unlockedDate: 'Today'
+            }
+          ]
         };
 
-        await supabase.from('profiles').insert({
-          id: profile.id,
-          name: profile.name,
-          handle: profile.handle,
-          title: profile.title,
-          level: profile.level,
-          current_xp: profile.currentXp,
-          next_level_xp: profile.nextLevelXp,
-          guild_id: profile.guildId,
-          guild_name: profile.guildName,
-          guild_tag: profile.guildTag,
-          guild_role: profile.guildRole
-        });
+        try {
+          await supabase.from('profiles').insert({
+            id: profile.id,
+            name: profile.name,
+            handle: profile.handle,
+            title: profile.title,
+            level: profile.level,
+            current_xp: profile.currentXp,
+            next_level_xp: profile.nextLevelXp,
+            guild_id: profile.guildId,
+            guild_name: profile.guildName,
+            guild_tag: profile.guildTag,
+            guild_role: profile.guildRole,
+            completed_quests_count: 0,
+            locations_discovered: 0,
+            current_streak_days: 1,
+            badges: profile.badges
+          });
+        } catch (insertErr) {
+          console.warn('Profile insert warning:', insertErr);
+        }
       }
 
       localStorage.setItem('sideq_user_profile', JSON.stringify(profile));
       return { data, profile, error: null };
     }
 
-    return { data, profile: null, error: null };
-  },
-
-  // Fast 1-Tap Guest / Field Initiate Demo Login
-  async signInDemo() {
-    const demoId = `scholar-${Math.floor(1000 + Math.random() * 9000)}`;
-    const profile: UserProfile = {
-      id: demoId,
-      name: 'Rowan Vance',
-      handle: '@rvance',
-      title: 'Apprentice Cryptographer',
-      level: 7,
-      currentXp: 1850,
-      nextLevelXp: 2400,
-      guildId: 'guild-chronos',
-      guildName: 'Chronos Keepers',
-      guildTag: 'CHRONO',
-      guildRole: 'Officer',
-      completedQuestsCount: 6,
-      locationsDiscovered: 14,
-      currentStreakDays: 5,
-      badges: [
-        {
-          id: 'badge-night-owl',
-          name: 'Night Inquirer',
-          description: 'Checked into a campus stop past 10:00 PM under moonlight.',
-          icon: 'Moon',
-          rarity: 'Arcane',
-          unlockedDate: 'Oct 12'
-        },
-        {
-          id: 'badge-clockwork',
-          name: 'Chronometer',
-          description: 'Solved a riddle chain in under 45 minutes.',
-          icon: 'Clock',
-          rarity: 'Master',
-          unlockedDate: 'Oct 19'
-        }
-      ]
-    };
-
-    localStorage.setItem('sideq_user_profile', JSON.stringify(profile));
-    localStorage.setItem('sideq_session', JSON.stringify({ user: { id: demoId, email: 'rowan@sideq.edu' } }));
-    return { profile, error: null };
+    return { data, profile: null, error: 'User session could not be established.' };
   },
 
   // Get Current Session and Profile
   async getCurrentUser(): Promise<UserProfile | null> {
-    if (isSupabaseConfigured()) {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-
-          if (profileData) {
-            return {
-              id: profileData.id,
-              name: profileData.name,
-              handle: profileData.handle,
-              title: profileData.title,
-              level: profileData.level,
-              currentXp: profileData.current_xp,
-              nextLevelXp: profileData.next_level_xp,
-              guildId: profileData.guild_id,
-              guildName: profileData.guild_name,
-              guildTag: profileData.guild_tag,
-              guildRole: profileData.guild_role,
-              completedQuestsCount: profileData.completed_quests_count,
-              locationsDiscovered: profileData.locations_discovered,
-              currentStreakDays: profileData.current_streak_days,
-              badges: profileData.badges || []
-            };
-          }
-        }
-      } catch (err) {
-        console.warn('Session fetch error:', err);
-      }
+    if (!isSupabaseConfigured()) {
+      // Clear out any old fake/mock cache from prior testing
+      localStorage.removeItem('sideq_user_profile');
+      localStorage.removeItem('sideq_session');
+      return null;
     }
 
-    // Check local storage session
-    const cached = localStorage.getItem('sideq_user_profile');
-    if (cached) {
-      try {
-        return JSON.parse(cached);
-      } catch {}
+    try {
+      const { data: { session }, error: sessionErr } = await supabase.auth.getSession();
+      if (sessionErr || !session?.user) {
+        localStorage.removeItem('sideq_user_profile');
+        localStorage.removeItem('sideq_session');
+        return null;
+      }
+
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
+
+      if (profileData) {
+        const profile: UserProfile = {
+          id: profileData.id,
+          name: profileData.name,
+          handle: profileData.handle,
+          title: profileData.title || 'Novice Initiate',
+          level: profileData.level || 1,
+          currentXp: profileData.current_xp || 0,
+          nextLevelXp: profileData.next_level_xp || 1000,
+          guildId: profileData.guild_id || 'guild-chronos',
+          guildName: profileData.guild_name || 'Chronos Keepers',
+          guildTag: profileData.guild_tag || 'CHRONO',
+          guildRole: profileData.guild_role || 'Scout',
+          completedQuestsCount: profileData.completed_quests_count || 0,
+          locationsDiscovered: profileData.locations_discovered || 0,
+          currentStreakDays: profileData.current_streak_days || 1,
+          badges: profileData.badges || []
+        };
+        localStorage.setItem('sideq_user_profile', JSON.stringify(profile));
+        return profile;
+      }
+    } catch (err) {
+      console.warn('Session fetch error:', err);
     }
 
     return null;
