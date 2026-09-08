@@ -1,16 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { ChatMessage, UserProfile } from '../../types';
 import { Send, Flame, Lock, Sparkles } from 'lucide-react';
 
 interface ChatViewProps {
   user: UserProfile;
   initialMessages: ChatMessage[];
+  onSendMessage?: (msg: ChatMessage) => void;
 }
 
-export const ChatView: React.FC<ChatViewProps> = ({ user, initialMessages }) => {
+export const ChatView: React.FC<ChatViewProps> = ({ user, initialMessages, onSendMessage }) => {
   const [activeChannel, setActiveChannel] = useState<'campus-general' | 'guild-private'>('campus-general');
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [inputText, setInputText] = useState('');
+
+  useEffect(() => {
+    setMessages(initialMessages);
+  }, [initialMessages]);
 
   const currentMessages = messages.filter((m) => m.channelId === activeChannel);
 
@@ -31,8 +36,9 @@ export const ChatView: React.FC<ChatViewProps> = ({ user, initialMessages }) => 
       timestamp: 'Just now'
     };
 
-    setMessages([...messages, newMsg]);
+    setMessages((prev) => [...prev, newMsg]);
     setInputText('');
+    onSendMessage?.(newMsg);
   };
 
   return (

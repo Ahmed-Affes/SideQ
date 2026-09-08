@@ -253,3 +253,53 @@ VALUES
   'Nature Walks & Night Explorers',
   '["Chill Vibe", "Photography", "Night Explorers"]'::jsonb
 ) ON CONFLICT (id) DO NOTHING;
+
+-- ==============================================================================
+-- AUTOMATIC PROFILE CREATION TRIGGER ON SUPABASE AUTH SIGNUP
+-- ==============================================================================
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (
+    id,
+    name,
+    handle,
+    title,
+    level,
+    current_xp,
+    next_level_xp,
+    guild_id,
+    guild_name,
+    guild_tag,
+    guild_role,
+    completed_quests_count,
+    locations_discovered,
+    current_streak_days,
+    badges
+  )
+  VALUES (
+    NEW.id::text,
+    COALESCE(NEW.raw_user_meta_data->>'name', split_part(NEW.email, '@', 1)),
+    COALESCE(NEW.raw_user_meta_data->>'handle', '@' || split_part(NEW.email, '@', 1)),
+    'Novice Initiate',
+    1,
+    0,
+    1000,
+    'guild-chronos',
+    'Chronos Keepers',
+    'CHRONO',
+    'Scout',
+    0,
+    0,
+    1,
+    '[{"id":"badge-initiate","name":"The Maiden Seal","description":"Enrolled into the Sidequest Society.","icon":"Compass","rarity":"Novice","unlockedDate":"Today"}]'::jsonb
+  )
+  ON CONFLICT (id) DO NOTHING;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();

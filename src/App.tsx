@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { MobileEnforcer } from './components/common/MobileEnforcer';
+import { AuthView } from './components/auth/AuthView';
 import { TopBar } from './components/navigation/TopBar';
 import { BottomNav } from './components/navigation/BottomNav';
 import { CampusMap } from './components/quest/CampusMap';
@@ -18,19 +19,23 @@ import {
   initialWeeklyQuest,
   campusLandmarks,
   initialGuilds,
-  initialUserProfile,
   initialChatMessages
 } from './data/campusData';
 import { dbService } from './services/dbService';
+import { authService } from './services/authService';
 import type { Quest, Guild, UserProfile, CampusLandmark, ChatMessage } from './types';
+import { CompassRose } from './components/common/CompassRose';
 
 export function App() {
   const [activeTab, setActiveTab] = useState<'quest' | 'guild' | 'chat' | 'leaderboard' | 'profile'>('quest');
   const [guildSubView, setGuildSubView] = useState<'hall' | 'directory'>('hall');
 
-  // Core State
+  // Auth State
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+
+  // Core Data State
   const [quest, setQuest] = useState<Quest>(initialWeeklyQuest);
-  const [user, setUser] = useState<UserProfile>(initialUserProfile);
   const [guilds, setGuilds] = useState<Guild[]>(initialGuilds);
   const [landmarks, setLandmarks] = useState<CampusLandmark[]>(campusLandmarks);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>(initialChatMessages);
@@ -41,25 +46,32 @@ export function App() {
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isCreateGuildOpen, setIsCreateGuildOpen] = useState(false);
 
-  // Load from dbService on mount
+  // Initialize Auth & Data
   useEffect(() => {
-    async function initData() {
-      const [loadedUser, loadedQuest, loadedGuilds, loadedChat] = await Promise.all([
-        dbService.loadUserProfile(),
-        dbService.loadQuest(),
-        dbService.loadGuilds(),
-        dbService.loadChatMessages()
-      ]);
+    async function init() {
+      try {
+        const currentUser = await authService.getCurrentUser();
+        setUser(currentUser);
 
-      setUser(loadedUser);
-      setQuest(loadedQuest);
-      setGuilds(loadedGuilds);
-      setChatMessages(loadedChat);
+        const [loadedQuest, loadedGuilds, loadedChat] = await Promise.all([
+          dbService.loadQuest(),
+          dbService.loadGuilds(),
+          dbService.loadChatMessages()
+        ]);
+
+        setQuest(loadedQuest);
+        setGuilds(loadedGuilds);
+        setChatMessages(loadedChat);
+      } catch (err) {
+        console.warn('Initial load warning:', err);
+      } finally {
+        setIsLoadingAuth(false);
+      }
     }
 
-    initData();
+    init();
 
-    // Setup realtime subscription for chat
+    // Subscribe to Realtime Chat Updates
     const unsubscribeChat = dbService.subscribeToChat((newMsg) => {
       setChatMessages((prev) => {
         if (prev.some((m) => m.id === newMsg.id)) return prev;
@@ -72,12 +84,51 @@ export function App() {
     };
   }, []);
 
+  const handleSignOut = async () => {
+    await authService.signOut();
+    setUser(null);
+  };
+
+  // If still loading session
+  if (isLoadingAuth) {
+    return (
+      <MobileEnforcer>
+        <div
+          style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 16,
+            backgroundColor: 'var(--bg-abyss)',
+            color: 'var(--gold-primary)',
+            fontFamily: 'var(--font-display)'
+          }}
+        >
+          <CompassRose bearingDegrees={120} targetDistanceMeters={0} isLockedOnTarget={false} />
+          <span style={{ fontSize: '13px', letterSpacing: '0.08em', fontWeight: 700 }}>
+            CALIBRATING SCHOLAR FIELD MATRIX…
+          </span>
+        </div>
+      </MobileEnforcer>
+    );
+  }
+
+  // If not authenticated, render Auth induction screen
+  if (!user) {
+    return (
+      <MobileEnforcer>
+        <AuthView onAuthenticated={(profile) => setUser(profile)} />
+      </MobileEnforcer>
+    );
+  }
+
   const activeStop = quest.stops[quest.activeStopIndex];
   const userGuild = guilds.find((g) => g.id === user.guildId) || guilds[0];
 
-  // Stop Unlock Handler
+  // Stop Unlock Handler (Saves to DB)
   const handleSuccessfulUnlock = async (stopId: string, earnedXp: number) => {
-    // 1. Advance quest stops
     const updatedStops = quest.stops.map((s, idx) => {
       if (s.id === stopId) {
         return { ...s, status: 'completed' as const, unlockedAt: 'Just now' };
@@ -101,7 +152,7 @@ export function App() {
     setQuest(updatedQuest);
     await dbService.saveQuest(updatedQuest, user.id);
 
-    // 2. Grant Player & Guild XP
+    // Grant Player & Guild XP
     const newCurrentXp = user.currentXp + earnedXp;
     const hasLeveledUp = newCurrentXp >= user.nextLevelXp;
 
@@ -116,7 +167,7 @@ export function App() {
     setUser(updatedUser);
     await dbService.saveUserProfile(updatedUser);
 
-    // 3. Grant Guild XP
+    // Grant Guild XP
     const updatedGuilds = guilds.map((g) => {
       if (g.id === user.guildId) {
         return {
@@ -130,7 +181,7 @@ export function App() {
     setGuilds(updatedGuilds);
     await dbService.saveGuilds(updatedGuilds);
 
-    // 4. Update Landmark status
+    // Update Landmark status
     setLandmarks((prevLandmarks) =>
       prevLandmarks.map((lm) => {
         if (lm.activeClueForStop === activeStop.stopNumber) {
@@ -197,6 +248,10 @@ export function App() {
     setGuildSubView('hall');
   };
 
+  const handleSendChat = async (msg: ChatMessage) => {
+    await dbService.sendChatMessage(msg);
+  };
+
   return (
     <MobileEnforcer>
       {/* Persistent Top Navigation Bar */}
@@ -205,6 +260,7 @@ export function App() {
         onOpenAdmin={() => setIsAdminOpen(true)}
         onSelectTab={setActiveTab}
         activeTab={activeTab}
+        onSignOut={handleSignOut}
       />
 
       {/* Screen Views Container */}
@@ -274,7 +330,11 @@ export function App() {
 
         {/* TAB 3: CHAT (Campfire & War Room) */}
         {activeTab === 'chat' && (
-          <ChatView user={user} initialMessages={chatMessages} />
+          <ChatView
+            user={user}
+            initialMessages={chatMessages}
+            onSendMessage={handleSendChat}
+          />
         )}
 
         {/* TAB 4: LEADERBOARD */}

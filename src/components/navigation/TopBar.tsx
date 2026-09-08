@@ -1,18 +1,20 @@
 import React from 'react';
 import type { UserProfile } from '../../types';
-import { Shield, Sparkles, KeyRound } from 'lucide-react';
+import { Shield, Sparkles, KeyRound, LogOut } from 'lucide-react';
 
 interface TopBarProps {
   user: UserProfile;
   onOpenAdmin: () => void;
   onSelectTab: (tab: 'quest' | 'guild' | 'chat' | 'leaderboard' | 'profile') => void;
   activeTab: string;
+  onSignOut?: () => void;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
   user,
   onOpenAdmin,
-  onSelectTab
+  onSelectTab,
+  onSignOut
 }) => {
   const xpPercentage = Math.min(100, Math.round((user.currentXp / user.nextLevelXp) * 100));
 
@@ -195,6 +197,30 @@ export const TopBar: React.FC<TopBarProps> = ({
         >
           <KeyRound size={15} />
         </button>
+
+        {/* Sign Out Button */}
+        {onSignOut && (
+          <button
+            type="button"
+            onClick={onSignOut}
+            aria-label="Sign out of scholar account"
+            title="Depart Campus / Sign Out"
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: '50%',
+              backgroundColor: 'rgba(153, 27, 27, 0.15)',
+              border: '1px solid rgba(220, 38, 38, 0.35)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#F87171',
+              cursor: 'pointer'
+            }}
+          >
+            <LogOut size={14} />
+          </button>
+        )}
       </div>
     </header>
   );
